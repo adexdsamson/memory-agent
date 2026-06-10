@@ -8,8 +8,6 @@ test functions before the implementation exists.
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestRememberRecall:
     """SC-1: Calling remember then recall returns the stored fact, scoped correctly."""
@@ -84,6 +82,9 @@ class TestRememberRecall:
         assert len(results) >= 1
         record = results[0]
         assert record.access_count >= 1
-        if record.t0_ref is not None:
-            turn = await engine.expand(record.id, user_id="u1")
-            assert turn is not None
+        # WritePath always sets t0_ref from the LocalFS append, so expand() must
+        # exercise the real T0 lookup path here — not be skipped conditionally.
+        assert record.t0_ref is not None
+        turn = await engine.expand(record.id, user_id="u1")
+        assert turn is not None
+        assert turn.content == "I batch-cook on Sundays"

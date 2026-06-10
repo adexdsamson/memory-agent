@@ -10,8 +10,6 @@ functional test.
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestSDKInterface:
     def test_public_surface_importable(self) -> None:

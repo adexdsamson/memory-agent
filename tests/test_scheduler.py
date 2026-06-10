@@ -13,8 +13,6 @@ from __future__ import annotations
 
 import asyncio
 
-import pytest
-
 
 class TestScheduler:
     async def test_trigger_now_fires_consolidate(self) -> None:

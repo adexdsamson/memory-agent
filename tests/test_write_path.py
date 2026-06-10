@@ -10,8 +10,6 @@ without blocking on a reasoning LLM, using only the heuristic trigger (D-04).
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestWritePath:
     async def test_durable_claim_produces_t1_record(self, engine) -> None:

@@ -33,7 +33,8 @@ class TestProviders:
         t0 = LocalFS(str(tmp_path / "t0"))
         scheduler = InProcessScheduler()
 
-        with pytest.raises(ValueError, match="[Ee]mbedding.*dim|dim.*mismatch|dim.*64.*128|dim.*128.*64"):
+        dim_mismatch = "[Ee]mbedding.*dim|dim.*mismatch|dim.*64.*128|dim.*128.*64"
+        with pytest.raises(ValueError, match=dim_mismatch):
             MemoryEngine(
                 embedder=embedder_128,
                 t1=t1_64,
