@@ -936,22 +936,24 @@ async def test_expand_and_access_count(engine):
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> All three resolved during planning; the recommendations below are implemented in the Phase 1 plans (01-02, 01-04).
 
 1. **`summary` generation on the fast write path**
    - What we know: the build plan says `summary` is "the packer injects by default" and should be <= ~12 tokens. WRITE-03 forbids LLM calls on the fast path.
    - What's unclear: for Phase 1, should `summary` default to the first 80 chars of `content`, or be a separate field the caller must supply?
-   - Recommendation: In Phase 1, auto-generate summary as `content[:80].strip()` in `WritePath`; the real summarization (LLM on the slow path) lands in Phase 2 consolidation.
+   - RESOLVED: In Phase 1, auto-generate summary as `content[:80].strip()` in `WritePath`; the real summarization (LLM on the slow path) lands in Phase 2 consolidation. (Implemented in Plan 01-04.)
 
 2. **Staging queue persistence on the local path**
    - What we know: D-13 allows sync queues wrapped in `asyncio.to_thread`. The staging queue must survive a process restart to avoid dropped turns.
    - What's unclear: Phase 1 scope says "in-memory staging queue" per CONTEXT.md deferred notes. Is losing staging on restart acceptable for Phase 1?
-   - Recommendation: Use an in-memory `asyncio.Queue` for Phase 1 (matches "walking skeleton" mode). Add SQLite-backed staging in Phase 2 when the consolidation pipeline actually drains it.
+   - RESOLVED: Use an in-memory `asyncio.Queue` for Phase 1 (matches "walking skeleton" mode). Add SQLite-backed staging in Phase 2 when the consolidation pipeline actually drains it. (Implemented in Plan 01-04.)
 
 3. **LocalFS T0 format: one file per session or one file per turn?**
    - What we know: T0 is append-only; `expand(id)` needs to retrieve a specific turn by `t0://session_id/offset_or_index` ref.
    - What's unclear: JSONL (one line per turn, offset = line number) vs separate files (one per turn, simpler).
-   - Recommendation: JSONL per session — append is O(1), read by line-number offset is deterministic, no filesystem overhead for high-turn sessions.
+   - RESOLVED: JSONL per session — append is O(1), read by line-number offset is deterministic, no filesystem overhead for high-turn sessions. (Implemented in Plan 01-02.)
 
 ---
 
