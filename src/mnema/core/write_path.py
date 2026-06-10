@@ -41,7 +41,9 @@ _TYPE_HINT_MAP: dict[str, RecordType] = {
     "procedure": RecordType.PROCEDURE,
 }
 
-# Keywords whose presence (with type_hint=="fact") sets the protected flag (D-05 bias)
+# Keywords whose presence sets the protected flag AND forces a durable T1 write
+# (D-05 bias / CORE-04). Safety detection is content-driven and independent of
+# type_hint — see _is_safety_claim.
 _SAFETY_KEYWORDS = frozenset(
     {"allerg", "intolerant", "intolerance", "diabeti", "celiac", "coeliac",
      "anaphyl", "medication", "allergy", "epilep", "seizure"}
@@ -61,15 +63,15 @@ def _resolve_record_type(type_hint: Optional[str]) -> RecordType:
     return RecordType.PREFERENCE
 
 
-def _is_safety_claim(content: str, type_hint: Optional[str]) -> bool:
+def _is_safety_claim(content: str) -> bool:
     """Return True if the content appears to be a safety-relevant claim.
 
-    Checks for medical/dietary safety keywords. When the type_hint is "fact"
-    and a safety keyword is detected, the record is marked protected=True so
-    it survives every decay pass (D-05 / CORE-04 structural flag).
+    Safety detection is CONTENT-driven and independent of type_hint. The primary
+    use case — `engine.remember("I am allergic to peanuts")` with NO type_hint —
+    MUST set protected=True so the fact survives every decay pass by construction
+    (core value / D-05 / CORE-04 structural flag). A non-"fact" type_hint does not
+    suppress a safety keyword match; the safety axis overrides type classification.
     """
-    if type_hint != "fact":
-        return False
     content_lower = content.lower()
     return any(kw in content_lower for kw in _SAFETY_KEYWORDS)
 
@@ -136,15 +138,19 @@ class WritePath:
         # Step 2: Push to in-memory buffer (no await — purely in-memory)
         self._buffer.push(turn, session_id=session_id, user_id=user_id)
 
-        # Step 3: Conditionally write provisional T1 record
+        # Step 3: Conditionally write provisional T1 record.
+        # A safety claim ALWAYS forces a durable write, independent of the classifier
+        # and type_hint — the core value forbids ever dropping an allergy, so it must
+        # never depend on the classifier happening to flag the phrasing as durable.
         t1_id: Optional[str] = None
-        if looks_like_durable_claim(content, type_hint, durable):
+        is_safety = _is_safety_claim(content)
+        if is_safety or looks_like_durable_claim(content, type_hint, durable):
             # ONE embedding call — never an LLM call (WRITE-03)
             embeddings = await self._embedder.embed([content])
             embedding = embeddings[0]
 
             resolved_type = _resolve_record_type(type_hint)
-            protected = _is_safety_claim(content, type_hint)
+            protected = is_safety
 
             record = MemoryRecord(
                 user_id=user_id,

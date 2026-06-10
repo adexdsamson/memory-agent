@@ -41,3 +41,33 @@ class TestWritePath:
         )
         records = await engine.t1.get_live_records(user_id="u_ephemeral")
         assert len(records) == 0
+
+    async def test_allergy_is_protected_without_type_hint(self, engine) -> None:
+        """CORE VALUE: an allergy stated with NO type_hint must be stored protected.
+
+        protected=True is the structural guarantee that the decay pass skips this
+        record by construction — the system 'can never forget' a safety fact. The
+        bare `remember("I am allergic to peanuts")` is the primary use case and must
+        not depend on the caller passing type_hint="fact".
+        """
+        await engine.remember(
+            "I am allergic to peanuts",
+            user_id="u1",
+            session_id="s1",
+        )
+        records = await engine.t1.get_live_records(user_id="u1")
+        assert len(records) == 1
+        assert records[0].protected is True
+
+    async def test_safety_claim_forces_durable_write(self, engine) -> None:
+        """A safety claim is written to T1 even when phrased so the durable-claim
+        heuristic would otherwise skip it — safety overrides classification."""
+        # Imperative phrasing the first-person-stative heuristic would not catch.
+        await engine.remember(
+            "Never serve me shellfish — anaphylaxis risk",
+            user_id="u1",
+            session_id="s1",
+        )
+        records = await engine.t1.get_live_records(user_id="u1")
+        assert len(records) == 1
+        assert records[0].protected is True
