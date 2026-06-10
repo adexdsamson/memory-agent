@@ -1,0 +1,155 @@
+# Requirements: MNEMA
+
+**Defined:** 2026-06-10
+**Core Value:** An agent never forgets a protected fact (e.g. an allergy) and never acts on a superseded one (e.g. an outdated dietary preference) — while recalling the right context within a fixed token budget, regardless of which model provider or storage backend is configured.
+
+## v1 Requirements
+
+Requirements for initial release. Each maps to roadmap phases.
+
+### Core Schema & Scoping
+
+- [ ] **CORE-01**: Every record carries scope identifiers (`user_id`/`agent_id`/`session_id`) and all reads and writes filter by scope
+- [ ] **CORE-02**: Every record is a typed document (`fact`/`preference`/`event`/`procedure`) following the v2 record schema (content, summary, embedding, keywords, salience, confidence, validity, provenance, edges)
+- [ ] **CORE-03**: Every record stores embedding provenance (`embedding_model`, `embedding_dim`, `embedding_version`)
+- [ ] **CORE-04**: Every record carries a structural `protected` boolean that is independent of the salience score
+- [ ] **CORE-05**: T1 uses a live filter / partial index so only records where `valid_until IS NULL` are on the hot retrieval path
+
+### Memory Tiers
+
+- [ ] **TIER-01**: T0 raw episodic log appends verbatim turns/observations, append-only, in cold object storage
+- [ ] **TIER-02**: T1 working memory stores typed records with a vector index for dense retrieval
+- [ ] **TIER-03**: T2 canonical vault holds the merged, deduped, human-readable, git-versioned user model
+- [ ] **TIER-04**: A recent-session buffer holds the last K turns the agent is already holding in context
+
+### Write Path
+
+- [ ] **WRITE-01**: On each turn, the engine appends to T0 and pushes to the buffer at zero model cost
+- [ ] **WRITE-02**: A durable-looking claim is written as a provisional T1 record with a single embedding call, recallable cross-session before consolidation runs
+- [ ] **WRITE-03**: The fast write path never blocks on a reasoning LLM
+- [ ] **WRITE-04**: Each write enqueues the turn to a staging queue for deferred extraction
+
+### Consolidation
+
+- [ ] **CONS-01**: Consolidation drains the staging queue and extracts typed records via the configured (cheap) LLM
+- [ ] **CONS-02**: Consolidation judges salience per record; safety/medical content is pinned to `protected`
+- [ ] **CONS-03**: Entity resolution matches a new record against near records by same subject + same predicate
+- [ ] **CONS-04**: A contradicting match is actively superseded — old record gets `valid_until` set, `superseded_by` set, and a `supersedes` edge is recorded
+- [ ] **CONS-05**: A non-contradicting match is merged into the existing record
+- [ ] **CONS-06**: Provisional records are reconciled in place by `t0_id` identity and the provisional flag cleared (no parallel duplicate)
+- [ ] **CONS-07**: Consolidation is idempotent — re-running produces no duplicate live records or dangling `superseded_by` pointers
+- [ ] **CONS-08**: Protected / `fact`-type records are never auto-superseded on an LLM contradiction alone (requires explicit `forget`)
+- [ ] **CONS-09**: Stable records are promoted into the T2 canonical vault
+
+### Forgetting
+
+- [ ] **FORG-01**: A decay pass computes `keep_score` (recency decay + reinforcement + salience) over all live records
+- [ ] **FORG-02**: Records below the keep threshold and not protected are evicted to cold storage
+- [ ] **FORG-03**: Protected records are skipped before any score math and survive every decay pass — verified by an invariant/property test, not an example
+- [ ] **FORG-04**: Eviction is to cold storage — recoverable and auditable, never a hard delete
+
+### Recall
+
+- [ ] **RECALL-01**: `recall` embeds the query and runs dense vector search over live records (`valid_until IS NULL`)
+- [ ] **RECALL-02**: `recall` unions vector results with the recent-session buffer using buffer-wins dedupe
+- [ ] **RECALL-03**: Results are re-ranked by relevance × salience × recency
+- [ ] **RECALL-04**: `recall` packs record summaries under a caller-supplied token budget
+- [ ] **RECALL-05**: The budget packer reserves protected/active-constraint slots first (two-pass), so a large off-topic history cannot push a critical fact out of budget
+- [ ] **RECALL-06**: `expand(id)` returns verbatim T0 detail on demand
+- [ ] **RECALL-07**: Accessing a record updates `access_count` and `last_accessed` (reinforcement signal)
+
+### Providers (model abstraction)
+
+- [ ] **PROV-01**: The LLM provider is selected behind a single interface; all chat/extraction/salience calls route through it
+- [ ] **PROV-02**: The embedding provider is configured independently from the LLM (separate axis)
+- [ ] **PROV-03**: Qwen (DashScope) LLM and embedding adapters ship and pass the conformance suite
+- [ ] **PROV-04**: Anthropic (Claude) LLM adapter ships and passes the conformance suite
+- [ ] **PROV-05**: A Claude-compatible embedder ships (Voyage and/or a local embedder) since Claude has no first-party embedder
+- [ ] **PROV-06**: Embeddings are normalized at the adapter and embedding dimension is asserted at startup
+- [ ] **PROV-07**: Switching embedders triggers a reindex/migration path rather than a silent config flip
+
+### Storage Backends
+
+- [ ] **STORE-01**: The object store (T0) is swappable — Alibaba OSS and local-FS adapters ship
+- [ ] **STORE-02**: The vector store (T1) is swappable — Postgres+pgvector and sqlite-vec adapters ship
+- [ ] **STORE-03**: The canonical vault (T2) is a git-versioned markdown adapter
+- [ ] **STORE-04**: A config-keyed factory wires the provider/backend for each axis from configuration
+- [ ] **STORE-05**: A documented default config (Qwen + Alibaba) and a fully-local config both run end-to-end
+- [ ] **STORE-06**: Every adapter passes a shared conformance suite on ≥2 backends per axis
+
+### Scheduler
+
+- [ ] **SCHED-01**: The consolidation/decay trigger sits behind a scheduler port
+- [ ] **SCHED-02**: An in-process scheduler ships with a `trigger_now()` for on-stage/demo runs
+- [ ] **SCHED-03**: A generic cron adapter ships
+
+### Interfaces
+
+- [ ] **IFACE-01**: An importable SDK exposes typed `remember`/`recall`/`forget`/`consolidate`/`expand` (the core API)
+- [ ] **IFACE-02**: An MCP server exposes the same operations as MCP tools (thin wrapper over the SDK)
+
+### Reference Demo (nutrition coach)
+
+- [ ] **DEMO-01**: An interactive nutrition-coach app runs on the engine (chat loop + meal planning)
+- [ ] **DEMO-02**: The coach demonstrates cross-session recall — constraints stated in an early session are respected in a later session
+- [ ] **DEMO-03**: The coach demonstrates supersession — a diet change retires the old record and surfaces `valid_until`/`superseded_by`
+- [ ] **DEMO-04**: The coach demonstrates decay + protected fact — a seeded backdated transient is evicted then recovered, while a pinned allergy survives untouched
+- [ ] **DEMO-05**: The coach demonstrates budget packing — a large history is packed under budget with one verbatim `expand` on demand
+
+### Evaluation
+
+- [ ] **EVAL-01**: A custom test harness covers the five capability scenarios (storage/recall, freshness, forgetting/supersession, protected fact, budget), growing to 20+ scripted tests
+- [ ] **EVAL-02**: A before/after baseline compares naive "stuff the whole transcript" vs MNEMA on the same suite
+
+## v2 Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### Hybrid Retrieval
+
+- **HYBRID-01**: Sparse/BM25 keyword recall over `keywords` + `content`
+- **HYBRID-02**: 1-hop graph-expand in recall over the adjacency table
+- **HYBRID-03**: RRF fusion (ranks-only, k=60) of dense + sparse + graph candidate sets
+
+### Additional Backends & Providers
+
+- **SCHED-04**: Alibaba Function Compute scheduler adapter
+- **PROV-08**: Additional providers (OpenAI, Ollama) behind the existing axes
+- **IFACE-03**: REST/HTTP API surface
+- **IFACE-04**: `list(scope)` / `get(id)` inspection endpoints
+
+### Evaluation (stretch)
+
+- **EVAL-03**: One public benchmark (LongMemEval or LoCoMo) for external credibility
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| Neo4j / heavyweight graph database | A Postgres adjacency table delivers the supersession semantics without the operational tax |
+| Hard-deleting memories | Eviction must be recoverable and auditable; destruction breaks the safety/audit story |
+| Autonomous self-editing memory (Letta-style) | Conflicts with the provable-forgetting guarantee — memory changes must be deliberate |
+| Cross-tenant / shared memory | v1 is single-subject scoped; sharing adds auth/privacy surface out of scope |
+| Multi-modal memory (image/audio) | Text-first; multi-modal embeddings are a separate effort |
+| Qwen-only / Alibaba-only lock-in | Explicitly replaced by the adapter layer (the central modification) |
+| Anchoring on MemPalace 96.6%/100% numbers | Disputed as tuned on specific failing questions; report our own numbers with methodology |
+| Nutrition coach as a shipped consumer product | It is a reference demo that proves the engine, not a maintained end-user app |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| (populated by roadmapper) | — | Pending |
+
+**Coverage:**
+- v1 requirements: 46 total
+- Mapped to phases: 0 (pending roadmap)
+- Unmapped: 46 ⚠️
+
+---
+*Requirements defined: 2026-06-10*
+*Last updated: 2026-06-10 after initial definition*
