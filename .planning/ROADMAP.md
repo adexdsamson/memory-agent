@@ -31,7 +31,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. The fast write path appends T0 + buffer + provisional T1 without ever blocking on a reasoning LLM, and every record persists scope ids, type, embedding provenance (`embedding_model`/`embedding_dim`/`embedding_version`), and a structural `protected` flag.
   4. The whole core runs against local adapters only (sqlite-vec + local FS + in-process scheduler with `trigger_now()`), with the LLM and embedding ports independently configurable and a 5-test harness green.
   5. `expand(id)` returns verbatim T0 detail and accessing a record updates `access_count`/`last_accessed`.
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Project scaffold, pytest harness, RED test stubs (Walking Skeleton)
+- [ ] 01-02-PLAN.md — Pydantic schema, six Protocol ports, SqliteT1 + LocalFS adapters
+- [ ] 01-03-PLAN.md — StubEmbedder, InProcessScheduler adapters
+- [ ] 01-04-PLAN.md — WritePath, RecallPath, MemoryEngine, ScopedHandle, SDK re-export
+- [ ] 01-05-PLAN.md — Full 5-test harness GREEN, schema unit tests, phase gate
 
 ### Phase 2: Consolidation & Supersession
 **Goal**: The slow offline pipeline turns raw turns into clean, deduped, non-contradicting typed records — the highest-risk correctness surface — while still fully local and deterministic.
@@ -92,7 +99,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema, Ports & Local Core Foundation | 0/TBD | Not started | - |
+| 1. Schema, Ports & Local Core Foundation | 0/5 | In progress | - |
 | 2. Consolidation & Supersession | 0/TBD | Not started | - |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
