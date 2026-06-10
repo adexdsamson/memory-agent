@@ -40,7 +40,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Project scaffold, pytest harness, RED test stubs (Walking Skeleton)
+- [x] 01-01-PLAN.md — Project scaffold, pytest harness, RED test stubs (Walking Skeleton)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -126,7 +126,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema, Ports & Local Core Foundation | 0/5 | In progress | - |
+| 1. Schema, Ports & Local Core Foundation | 1/5 | In Progress|  |
 | 2. Consolidation & Supersession | 0/TBD | Not started | - |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
