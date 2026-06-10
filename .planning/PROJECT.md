@@ -16,7 +16,16 @@ An agent **never forgets a protected fact (e.g. an allergy) and never acts on a 
 
 <!-- Shipped and confirmed valuable. -->
 
-(None yet — ship to validate)
+**Validated in Phase 1: schema-ports-local-core-foundation (2026-06-10)** — the engine's local-core walking skeleton, proven by a 23-test green harness + pyright strict:
+- T0 raw episodic log (verbatim, append-only LocalFS) and `expand(id)` verbatim retrieval
+- T1 working-memory record schema — the single-source-of-truth Pydantic model with all un-retrofittable columns (structural `protected` flag, embedding provenance, `valid_until` lifecycle)
+- Six async Protocol ports (LLM, embedding, object-store, record-store, vector-index, scheduler) — **independent LLM/embedding axes** confirmed (separate Protocols + constructor params; dim-mismatch guard at startup)
+- Local adapters: SqliteT1 (RecordStore + VectorIndex over one aiosqlite + sqlite-vec connection, user-scoped recall), StubEmbedder, InProcessScheduler
+- Fast online write (T0 + buffer + provisional T1, **no LLM on the write path**) and recent-session buffer freshness
+- Budget-naive recall (dense KNN + buffer union, content-deduped) and the `MemoryEngine`/`ScopedHandle` SDK surface
+- **Core-value foundation:** a safety claim (e.g. "I am allergic to peanuts") is stored `protected=True` from content alone, independent of any caller hint
+
+*Full index set (keyword/graph), consolidation, supersession, and forgetting remain Active — they are Phase 2+.*
 
 ### Active
 
@@ -111,4 +120,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-10 after initialization*
+*Last updated: 2026-06-10 — Phase 1 (schema/ports/local-core foundation) complete; next: Phase 2 consolidation & supersession*
