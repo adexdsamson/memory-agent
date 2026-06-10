@@ -49,7 +49,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-04-PLAN.md — WritePath, RecallPath, MemoryEngine, ScopedHandle, SDK re-export
+- [x] 01-04-PLAN.md — WritePath, RecallPath, MemoryEngine, ScopedHandle, SDK re-export
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -126,7 +126,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema, Ports & Local Core Foundation | 3/5 | In Progress|  |
+| 1. Schema, Ports & Local Core Foundation | 4/5 | In Progress|  |
 | 2. Consolidation & Supersession | 0/TBD | Not started | - |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
