@@ -124,18 +124,27 @@ class RecallPath:
             if record is not None:
                 t1_records.append(record)
 
-        # Track all T1 record ids for deduplication
-        t1_content_ids: set[str] = {r.id for r in t1_records}
+        # Track T1 ids AND contents for deduplication. A just-written fact lives in
+        # BOTH the buffer (a Turn, id "turn_*") and T1 (a MemoryRecord, id "mem_*")
+        # with DIFFERENT ids, so id-only dedup misses it and the same content
+        # surfaces twice. The T1 record carries full provenance + t0_ref + embedding,
+        # so it always wins; a buffer turn is emitted only when its content is not
+        # already represented in T1 (and not duplicated within the buffer itself).
+        t1_ids: set[str] = {r.id for r in t1_records}
+        t1_contents: set[str] = {r.content for r in t1_records}
 
         # Step 4: Union with buffer turns for this user
         buffer_turns: list[Turn] = self._buffer.as_candidates_for_user(user_id)
 
-        # Synthesize records for buffer-only turns (not already in T1 results)
-        # Buffer wins on dedup: if a turn id matches a T1 record id we already have it
         buffer_records: list[MemoryRecord] = []
+        seen_buffer_contents: set[str] = set()
         for turn in buffer_turns:
-            if turn.id not in t1_content_ids and turn.id not in dense_ids:
-                buffer_records.append(_turn_to_record(turn, user_id=user_id))
+            if turn.id in t1_ids or turn.id in dense_ids:
+                continue
+            if turn.content in t1_contents or turn.content in seen_buffer_contents:
+                continue
+            seen_buffer_contents.add(turn.content)
+            buffer_records.append(_turn_to_record(turn, user_id=user_id))
 
         # Step 5: Increment access_count for T1 records
         now = _utcnow()

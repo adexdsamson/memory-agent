@@ -88,3 +88,17 @@ class TestRememberRecall:
         turn = await engine.expand(record.id, user_id="u1")
         assert turn is not None
         assert turn.content == "I batch-cook on Sundays"
+
+    async def test_recall_dedupes_same_session_fact(self, engine) -> None:
+        """A just-written fact lives in both the buffer (Turn) and T1 (MemoryRecord)
+        with different ids; recall must return it exactly once, not once per source."""
+        await engine.remember(
+            "I am allergic to shellfish",
+            user_id="u1",
+            session_id="s1",
+        )
+        results = await engine.recall("seafood allergy", user_id="u1")
+        contents = [r.content for r in results]
+        assert contents.count("I am allergic to shellfish") == 1
+        # No duplicate content of any kind in a single recall result set.
+        assert len(contents) == len(set(contents))
