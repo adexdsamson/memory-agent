@@ -5,7 +5,7 @@
 
 ## v1 Requirements
 
-Requirements for initial release. Each maps to roadmap phases.
+Requirements for initial release (58 total). Each maps to roadmap phases.
 
 ### Core Schema & Scoping
 
@@ -143,13 +143,70 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmapper) | — | Pending |
+| CORE-01 | Phase 1 | Pending |
+| CORE-02 | Phase 1 | Pending |
+| CORE-03 | Phase 1 | Pending |
+| CORE-04 | Phase 1 | Pending |
+| CORE-05 | Phase 1 | Pending |
+| TIER-01 | Phase 1 | Pending |
+| TIER-02 | Phase 1 | Pending |
+| TIER-04 | Phase 1 | Pending |
+| WRITE-01 | Phase 1 | Pending |
+| WRITE-02 | Phase 1 | Pending |
+| WRITE-03 | Phase 1 | Pending |
+| WRITE-04 | Phase 1 | Pending |
+| RECALL-01 | Phase 1 | Pending |
+| RECALL-02 | Phase 1 | Pending |
+| RECALL-06 | Phase 1 | Pending |
+| RECALL-07 | Phase 1 | Pending |
+| PROV-01 | Phase 1 | Pending |
+| PROV-02 | Phase 1 | Pending |
+| PROV-06 | Phase 1 | Pending |
+| SCHED-01 | Phase 1 | Pending |
+| SCHED-02 | Phase 1 | Pending |
+| IFACE-01 | Phase 1 | Pending |
+| EVAL-01 | Phase 1 | Pending |
+| CONS-01 | Phase 2 | Pending |
+| CONS-02 | Phase 2 | Pending |
+| CONS-03 | Phase 2 | Pending |
+| CONS-04 | Phase 2 | Pending |
+| CONS-05 | Phase 2 | Pending |
+| CONS-06 | Phase 2 | Pending |
+| CONS-07 | Phase 2 | Pending |
+| CONS-08 | Phase 2 | Pending |
+| FORG-01 | Phase 2 | Pending |
+| FORG-02 | Phase 3 | Pending |
+| FORG-03 | Phase 3 | Pending |
+| FORG-04 | Phase 3 | Pending |
+| RECALL-03 | Phase 3 | Pending |
+| RECALL-04 | Phase 3 | Pending |
+| RECALL-05 | Phase 3 | Pending |
+| CONS-09 | Phase 3 | Pending |
+| TIER-03 | Phase 3 | Pending |
+| IFACE-02 | Phase 3 | Pending |
+| PROV-03 | Phase 4 | Pending |
+| PROV-04 | Phase 4 | Pending |
+| PROV-05 | Phase 4 | Pending |
+| PROV-07 | Phase 4 | Pending |
+| STORE-01 | Phase 4 | Pending |
+| STORE-02 | Phase 4 | Pending |
+| STORE-03 | Phase 4 | Pending |
+| STORE-04 | Phase 4 | Pending |
+| STORE-05 | Phase 4 | Pending |
+| STORE-06 | Phase 4 | Pending |
+| SCHED-03 | Phase 4 | Pending |
+| DEMO-01 | Phase 5 | Pending |
+| DEMO-02 | Phase 5 | Pending |
+| DEMO-03 | Phase 5 | Pending |
+| DEMO-04 | Phase 5 | Pending |
+| DEMO-05 | Phase 5 | Pending |
+| EVAL-02 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 46 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 46 ⚠️
+- v1 requirements: 58 enumerated (note: section header previously read "46"; the enumerated list totals 58 distinct IDs — all are mapped)
+- Mapped to phases: 58 (Phase 1: 23, Phase 2: 9, Phase 3: 9, Phase 4: 11, Phase 5: 6)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-10*
-*Last updated: 2026-06-10 after initial definition*
+*Last updated: 2026-06-10 after roadmap creation*
