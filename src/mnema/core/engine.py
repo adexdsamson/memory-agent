@@ -62,7 +62,7 @@ class MemoryEngine:
         embedder: "EmbeddingProvider",
         t1: Any,  # structurally satisfies both RecordStore and VectorIndex
         t0: "ObjectStorePort",
-        scheduler: Any,  # sync or async Scheduler
+        scheduler: Any,  # async Scheduler (see mnema.ports.scheduler.Scheduler)
     ) -> None:
         """Construct MemoryEngine, asserting embedding dim consistency (PROV-06).
 
@@ -70,7 +70,7 @@ class MemoryEngine:
             embedder: Embedding provider — dim must match t1's vector column width.
             t1: T1 working-memory adapter (must satisfy RecordStore + VectorIndex).
             t0: T0 object store adapter (ObjectStorePort — append/get verbatim turns).
-            scheduler: Consolidation scheduler (sync or async trigger_now).
+            scheduler: Consolidation scheduler (async Scheduler — awaited trigger_now).
 
         Raises:
             ValueError: If embedder.dim != t1._dim (PROV-06 startup assertion).
@@ -234,10 +234,8 @@ class MemoryEngine:
 
         # TODO Phase 2: drain staging queue — batch extract, salience, supersession
         """
-        trigger_fn = self._scheduler.trigger_now()
-        # Support both sync and async scheduler implementations
-        if asyncio.iscoroutine(trigger_fn):
-            await trigger_fn
+        # Scheduler control surface is async by contract (Scheduler Protocol).
+        await self._scheduler.trigger_now()
 
     # -------------------------------------------------------------------------
     # Ergonomic front door
