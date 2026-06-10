@@ -336,8 +336,13 @@ class SqliteT1:
         if agent_id is not None:
             params["agent_id"] = agent_id
 
-        rows = await self._db.execute_fetchall(sql, params)
-        return [(row[0], row[1]) for row in rows]
+        # Use a raw cursor with the default row factory so the _make_record
+        # row factory (set on the connection) is not applied to the 2-column
+        # (record_id, distance) result from vec_t1.
+        cursor = await self._db.execute(sql, params)
+        cursor.row_factory = None  # type: ignore[assignment]
+        rows = await cursor.fetchall()
+        return [(str(row[0]), float(row[1])) for row in rows]
 
     async def delete_vector(self, record_id: str) -> None:
         """Remove a vector from the index."""
