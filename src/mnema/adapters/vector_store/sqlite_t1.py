@@ -28,7 +28,7 @@ import aiosqlite
 import numpy as np
 import sqlite_vec  # type: ignore[import-untyped]
 
-from mnema.core.schema import MemoryRecord, RecordType
+from mnema.core.schema import MemoryRecord
 
 # ---------------------------------------------------------------------------
 # Allowed field names for the parameterized UPDATE whitelist (T-1-05 mitigation)
