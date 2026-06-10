@@ -13,7 +13,7 @@ MNEMA is built inside-out. We write the record schema and the six ports first, s
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Schema, Ports & Local Core Foundation** - Scoped schema, six ports, local adapters, and `remember` + `recall(dense)` end-to-end on the local stack
+- [x] **Phase 1: Schema, Ports & Local Core Foundation** - Scoped schema, six ports, local adapters, and `remember` + `recall(dense)` end-to-end on the local stack (completed 2026-06-10)
 - [ ] **Phase 2: Consolidation & Supersession** - Offline extraction, salience, entity resolution, active supersession, and provisional reconciliation
 - [ ] **Phase 3: Forgetting, Salience Floor, Budget Packer & MCP** - Provable protected-fact survival, recoverable eviction, two-pass budget recall, T2 vault, and the MCP surface
 - [ ] **Phase 4: Cloud Providers & Backends** - Real Qwen/Anthropic/Voyage adapters, pgvector/OSS/git backends, config factory, and conformance on ≥2 backends per axis
@@ -53,7 +53,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 01-05-PLAN.md — Full 5-test harness GREEN, schema unit tests, phase gate
+- [x] 01-05-PLAN.md — Full 5-test harness GREEN, schema unit tests, phase gate
 
 ### Phase 2: Consolidation & Supersession
 
@@ -126,7 +126,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema, Ports & Local Core Foundation | 4/5 | In Progress|  |
+| 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 0/TBD | Not started | - |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
