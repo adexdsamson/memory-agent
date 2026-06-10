@@ -32,6 +32,6 @@ class RecordStore(Protocol):
         """Partial update — only the supplied fields are written."""
         ...
 
-    def live_records(self, user_id: str) -> AsyncIterator[MemoryRecord]:
+    async def live_records(self, user_id: str) -> AsyncIterator[MemoryRecord]:
         """Async generator of live records (valid_until IS NULL) for a user."""
         ...
