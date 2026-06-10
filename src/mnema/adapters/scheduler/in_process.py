@@ -18,7 +18,6 @@ from typing import Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
 
-
 JOB_ID = "consolidate"
 
 
