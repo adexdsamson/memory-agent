@@ -44,8 +44,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Pydantic schema, six Protocol ports, SqliteT1 + LocalFS adapters
-- [ ] 01-03-PLAN.md — StubEmbedder, InProcessScheduler adapters
+- [x] 01-02-PLAN.md — Pydantic schema, six Protocol ports, SqliteT1 + LocalFS adapters
+- [x] 01-03-PLAN.md — StubEmbedder, InProcessScheduler adapters
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -126,7 +126,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema, Ports & Local Core Foundation | 1/5 | In Progress|  |
+| 1. Schema, Ports & Local Core Foundation | 3/5 | In Progress|  |
 | 2. Consolidation & Supersession | 0/TBD | Not started | - |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
