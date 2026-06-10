@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# uv / virtualenv
+.venv/
+
+# Type checkers
+.pyright/
+
+# Local MNEMA artifacts (T0/T1 data, scratch dbs)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.mnema/
+
+# OS
+.DS_Store
+Thumbs.db
