@@ -69,7 +69,25 @@ Plans:
   4. A protected/`fact`-type record is never auto-superseded on an LLM contradiction alone (it requires an explicit `forget`), proven by a seeded contradiction test.
   5. A decay pass computes `keep_score` (recency decay + reinforcement + salience) over all live records.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — StubLLM adapter + RED test stubs for all 10 Phase 2 tests (walking skeleton)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-PLAN.md — keep_score + decay_pass pure-sync module (TDD: RED → GREEN, FORG-01)
+- [ ] 02-03-PLAN.md — SqliteT1 new methods: supersede() + find_by_t0_ref() (CONS-04/06/07)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 02-04-PLAN.md — ConsolidationPipeline + engine.consolidate() wired (CONS-01..08, FORG-01)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 02-05-PLAN.md — All 10 tests GREEN + pyright phase gate (full suite: 33 tests passing)
 
 ### Phase 3: Forgetting, Salience Floor, Budget Packer & MCP
 
@@ -127,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
-| 2. Consolidation & Supersession | 0/TBD | Not started | - |
+| 2. Consolidation & Supersession | 0/5 | Not started | - |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
