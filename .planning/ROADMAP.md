@@ -83,7 +83,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 02-04-PLAN.md — ConsolidationPipeline + engine.consolidate() wired (CONS-01..08, FORG-01)
+- [x] 02-04-PLAN.md — ConsolidationPipeline + engine.consolidate() wired (CONS-01..08, FORG-01)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
-| 2. Consolidation & Supersession | 3/5 | In Progress|  |
+| 2. Consolidation & Supersession | 4/5 | In Progress|  |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
