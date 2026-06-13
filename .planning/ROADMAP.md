@@ -74,7 +74,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — StubLLM adapter + RED test stubs for all 10 Phase 2 tests (walking skeleton)
+- [x] 02-01-PLAN.md — StubLLM adapter + RED test stubs for all 10 Phase 2 tests (walking skeleton)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
-| 2. Consolidation & Supersession | 0/5 | Not started | - |
+| 2. Consolidation & Supersession | 1/5 | In Progress|  |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
