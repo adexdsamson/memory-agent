@@ -292,6 +292,24 @@ class SqliteT1:
         # row_factory already converted it to MemoryRecord
         return row  # type: ignore[return-value]
 
+    async def find_by_t0_ref(self, t0_ref: str, user_id: str) -> MemoryRecord | None:
+        """Return the live provisional record with this t0_ref, scoped to user_id.
+
+        Idempotency fence for provisional record reconciliation (CONS-06/07).
+        Returns the live provisional record with this t0_ref, or None if no such record exists.
+        Only live records (valid_until IS NULL) are returned — superseded provisionals are excluded.
+
+        user_id predicate is mandatory — no cross-user lookup (D-02/D-03, T-02-07).
+        """
+        cursor = await self._db.execute(
+            "SELECT * FROM t1_records WHERE t0_ref = ? AND user_id = ? AND valid_until IS NULL",
+            (t0_ref, user_id),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return row  # type: ignore[return-value]
+
     async def update(self, record_id: str, **fields: object) -> None:
         """Partial update using a column whitelist (T-1-05: no SQL injection via field names).
 
@@ -406,9 +424,10 @@ class SqliteT1:
         """Return the most recently created live record for user_id.
 
         Used by test_fast_write_schema_columns to verify schema columns.
+        WR-01 fix: filters valid_until IS NULL so superseded records are excluded.
         """
         cursor = await self._db.execute(
-            "SELECT * FROM t1_records WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+            "SELECT * FROM t1_records WHERE user_id = ? AND valid_until IS NULL ORDER BY created_at DESC LIMIT 1",
             (user_id,),
         )
         row = await cursor.fetchone()
