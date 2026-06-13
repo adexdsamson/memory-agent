@@ -35,3 +35,32 @@ class RecordStore(Protocol):
     async def live_records(self, user_id: str) -> AsyncIterator[MemoryRecord]:
         """Async generator of live records (valid_until IS NULL) for a user."""
         ...
+
+    async def supersede(
+        self,
+        old_id: str,
+        new_record: MemoryRecord,
+        embedding: list[float],
+    ) -> None:
+        """Atomically retire old_id and insert new_record + embedding in one transaction.
+
+        Sets valid_until + superseded_by on the old record and inserts the new record
+        with its vector in a single SQLite transaction. Raises on failure after rollback.
+        old_id must belong to user_id == new_record.user_id (enforced by AND user_id predicate).
+        Used by ConsolidationPipeline for CONS-04 atomic contradiction resolution.
+        """
+        ...
+
+    async def find_by_t0_ref(
+        self,
+        t0_ref: str,
+        user_id: str,
+    ) -> MemoryRecord | None:
+        """Return the live provisional record with this t0_ref, scoped to user_id.
+
+        Only live records (valid_until IS NULL) are returned.
+        Returns None if no matching live record exists.
+        Used by ConsolidationPipeline for CONS-06/07 provisional reconciliation
+        (idempotency fence — prevents duplicate live records on rerun).
+        """
+        ...
