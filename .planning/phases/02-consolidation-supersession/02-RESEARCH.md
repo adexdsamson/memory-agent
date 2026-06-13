@@ -609,22 +609,25 @@ def _is_supersession_permitted(existing: "MemoryRecord") -> bool:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **StubLLM extraction fidelity for test coverage**
    - What we know: `StubLLM` must be deterministic; it uses keyword-table extraction for `record_type` and salience.
    - What's unclear: How many extraction fixture cases are needed to make CONS-01..08 tests meaningfully cover the pipeline? The minimum is: (a) allergy → protected/FACT, (b) preference → PREFERENCE with non-1.0 salience, (c) dietary change → contradict verdict, (d) refinement → refine verdict, (e) unrelated → distinct verdict.
    - Recommendation: Define the fixture set in Wave 0 test setup. The StubLLM keyword table is tuned to produce the correct verdicts for these specific fixtures.
+   - **RESOLVED (Plan 01):** StubLLM ships with a keyword-table extractor (allergy/medical → protected FACT; prefer/love/like → PREFERENCE; default → PREFERENCE) and a sha256-hash contradiction judge. The five fixture cases are covered by the test content strings in test_consolidation.py. The fixture helper `_find_new_content_for_verdict` in Plan 05 generates seeded content pairs for specific verdict targets.
 
 2. **graph_edges schema for `contradiction_pending`**
    - What we know: `graph_edges` is a `list[dict[str, Any]]` stored as JSON. Existing schema supports `{"rel": "supersedes", "target": id}`.
    - What's unclear: Should `contradiction_pending` edges live on the existing record, the extracted record, or be logged elsewhere?
-   - Recommendation: Store on the existing (live) record as `{"rel": "contradiction_pending", "target": extracted_record_id, "ts": now_iso}`. This preserves the audit trail on the record that survived.
+   - Recommendation: Store on the existing (live) record as `{"rel": "contradiction_pending", "target": extracted_record_id, "ts": now_iso}`.  This preserves the audit trail on the record that survived.
+   - **RESOLVED (Plan 04 Task 1):** `contradiction_pending` edge is stored on the EXISTING (live) record as `{"rel": "contradiction_pending", "target": "unresolved_{t0_ref}", "ts": now_iso}`. This keeps the audit trail on the surviving record and uses the t0_ref as the target reference rather than an extracted record id (which may not exist yet at contradiction-detection time).
 
 3. **Consolidation wiring: does `MemoryEngine.consolidate()` construct `ConsolidationPipeline` inline?**
    - What we know: The engine currently has a stub; `LLMProvider` is not yet injected into the engine.
    - What's unclear: Should `LLMProvider` be added to `MemoryEngine.__init__` as a required parameter in Phase 2, or should the `ConsolidationPipeline` be constructed with a default `StubLLM` and optionally overridden?
    - Recommendation: Add `llm: LLMProvider` as a parameter to `MemoryEngine.__init__` with a default of `StubLLM()` (similar to how a default embedder could be provided). This keeps the engine configurable and avoids hard-coupling the engine to the stub.
+   - **RESOLVED (Plan 04 Task 2):** `llm: LLMProvider | None = None` added to `MemoryEngine.__init__`. StubLLM() default is constructed via a lazy import inside `__init__` when `llm is None` (not at module level). `ConsolidationPipeline` is also constructed lazily inside `__init__` to keep the engine's module-level imports clean. Both lazy imports use `# noqa: PLC0415`.
 
 ---
 
