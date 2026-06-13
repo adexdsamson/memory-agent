@@ -78,8 +78,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-PLAN.md — keep_score + decay_pass pure-sync module (TDD: RED → GREEN, FORG-01)
-- [ ] 02-03-PLAN.md — SqliteT1 new methods: supersede() + find_by_t0_ref() (CONS-04/06/07)
+- [x] 02-02-PLAN.md — keep_score + decay_pass pure-sync module (TDD: RED → GREEN, FORG-01)
+- [x] 02-03-PLAN.md — SqliteT1 new methods: supersede() + find_by_t0_ref() (CONS-04/06/07)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
-| 2. Consolidation & Supersession | 1/5 | In Progress|  |
+| 2. Consolidation & Supersession | 3/5 | In Progress|  |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
