@@ -40,6 +40,7 @@ from mnema.core.write_path import WritePath
 
 if TYPE_CHECKING:
     from mnema.ports.embedding import EmbeddingProvider
+    from mnema.ports.llm import LLMProvider
     from mnema.ports.object_store import ObjectStorePort
 
 
@@ -63,6 +64,7 @@ class MemoryEngine:
         t1: Any,  # structurally satisfies both RecordStore and VectorIndex
         t0: "ObjectStorePort",
         scheduler: Any,  # async Scheduler (see mnema.ports.scheduler.Scheduler)
+        llm: "LLMProvider | None" = None,
     ) -> None:
         """Construct MemoryEngine, asserting embedding dim consistency (PROV-06).
 
@@ -71,6 +73,9 @@ class MemoryEngine:
             t1: T1 working-memory adapter (must satisfy RecordStore + VectorIndex).
             t0: T0 object store adapter (ObjectStorePort — append/get verbatim turns).
             scheduler: Consolidation scheduler (async Scheduler — awaited trigger_now).
+            llm: LLM provider for consolidation (extraction + contradiction judging).
+                Defaults to StubLLM() if omitted — backward-compatible default for
+                all existing tests that construct MemoryEngine without llm=.
 
         Raises:
             ValueError: If embedder.dim != t1._dim (PROV-06 startup assertion).
@@ -82,6 +87,14 @@ class MemoryEngine:
                 f"t1 was created with dim={t1._dim}. "
                 f"Ensure the embedder and the T1 store use the same vector dimension."
             )
+
+        # Lazy-default StubLLM when llm is omitted (backward-compatible).
+        # Import is deferred to runtime only when llm is None — StubLLM is NEVER
+        # imported at module level so core/engine.py stays vendor-free at import time.
+        if llm is None:
+            from mnema.adapters.llm.stub import StubLLM  # noqa: PLC0415
+            llm = StubLLM()
+        self._llm: "LLMProvider" = llm
 
         self._embedder: "EmbeddingProvider" = embedder
         self._t1: Any = t1
@@ -106,6 +119,17 @@ class MemoryEngine:
             record_store=t1,
             t0=t0,
             buffer=self._buffer,
+        )
+
+        # ConsolidationPipeline — lazy import avoids circular/import-order issues;
+        # core/consolidation.py is a peer core module loaded once here.
+        from mnema.core.consolidation import ConsolidationPipeline  # noqa: PLC0415
+        self._consolidation_pipeline = ConsolidationPipeline(
+            llm=self._llm,
+            embedder=embedder,
+            record_store=t1,
+            vector_index=t1,
+            staging_queue=self._staging,
         )
 
     # -------------------------------------------------------------------------
@@ -226,15 +250,21 @@ class MemoryEngine:
         pass  # noqa: PIE790
 
     async def consolidate(self, *, force: bool = False) -> None:
-        """Trigger offline consolidation (stub — Phase 2 will implement batch extract).
+        """Offline consolidation — drain staging queue, extract, resolve, decay.
 
-        Fires the scheduler immediately when `force=True` or always (Phase 1 stub).
-        Phase 2 will: drain the staging queue, batch-extract typed records, judge
-        salience, entity-resolve, merge/supersede/confirm, clear provisional flags.
+        Drains the staging queue via ConsolidationPipeline.run(), which:
+          1. Extracts typed records from each staged turn (StubLLM in Phase 2)
+          2. Safety-pins any protected content via content rule (not LLM)
+          3. Reconciles provisional records in place by t0_ref (CONS-06/07)
+          4. Entity-resolves new records via cosine KNN (CONS-03)
+          5. Applies contradiction/refine/distinct verdict with CONS-08 gate
+          6. Runs decay_pass over all live records per user (FORG-01)
 
-        # TODO Phase 2: drain staging queue — batch extract, salience, supersession
+        Args:
+            force: Reserved for future scheduler-bypass semantics; currently
+                has no effect on the pipeline execution.
         """
-        # Scheduler control surface is async by contract (Scheduler Protocol).
+        await self._consolidation_pipeline.run()
         await self._scheduler.trigger_now()
 
     # -------------------------------------------------------------------------

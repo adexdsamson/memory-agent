@@ -171,7 +171,9 @@ class WritePath:
             await self._vector_index.upsert_vector(record.id, embedding)
             t1_id = record.id
 
-        # Step 4: Enqueue to staging queue for offline consolidation consumer
-        await self._staging_queue.put({"turn": turn, "t0_ref": t0_ref})
+        # Step 4: Enqueue to staging queue for offline consolidation consumer.
+        # user_id is included so ConsolidationPipeline can scope all T1 operations
+        # to the correct user (D-02/D-03 isolation — T-02-13 cross-user guard).
+        await self._staging_queue.put({"turn": turn, "t0_ref": t0_ref, "user_id": user_id})
 
         return (t0_ref, t1_id)
