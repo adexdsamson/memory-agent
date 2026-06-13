@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import AsyncIterator
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import aiosqlite
@@ -99,6 +99,25 @@ CREATE INDEX IF NOT EXISTS idx_t1_live_user
     WHERE valid_until IS NULL
 """
 
+# ---------------------------------------------------------------------------
+# Shared INSERT SQL and parameter builder (used by upsert() and supersede())
+# ---------------------------------------------------------------------------
+_INSERT_SQL = """
+INSERT OR REPLACE INTO t1_records (
+    id, user_id, session_id, agent_id, record_type, content, summary,
+    keywords, embedding_model, embedding_dim, embedding_version,
+    protected, salience, confidence, provisional,
+    valid_from, valid_until, superseded_by, t0_ref, source_refs,
+    access_count, last_accessed, created_at, graph_edges
+) VALUES (
+    :id, :user_id, :session_id, :agent_id, :record_type, :content, :summary,
+    :keywords, :embedding_model, :embedding_dim, :embedding_version,
+    :protected, :salience, :confidence, :provisional,
+    :valid_from, :valid_until, :superseded_by, :t0_ref, :source_refs,
+    :access_count, :last_accessed, :created_at, :graph_edges
+)
+"""
+
 
 # ---------------------------------------------------------------------------
 # Row factory
@@ -134,6 +153,43 @@ def _dt_to_str(dt: datetime | None) -> str | None:
 def _v32(vec: list[float]) -> bytes:
     """Serialize a float list to float32 bytes for sqlite-vec. Never pass a Python list."""
     return np.array(vec, dtype=np.float32).tobytes()
+
+
+def _record_params(record: MemoryRecord) -> dict[str, object]:
+    """Build the full parameter dict for _INSERT_SQL from a MemoryRecord.
+
+    Serialization rules:
+    - bool columns: int() cast (T-1-07 mitigation for SQLite integer storage)
+    - list columns: json.dumps()
+    - datetime columns: _dt_to_str()
+    - record_type enum: str(record.record_type.value)
+    """
+    return {
+        "id": record.id,
+        "user_id": record.user_id,
+        "session_id": record.session_id,
+        "agent_id": record.agent_id,
+        "record_type": str(record.record_type.value),
+        "content": record.content,
+        "summary": record.summary,
+        "keywords": json.dumps(record.keywords),
+        "embedding_model": record.embedding_model,
+        "embedding_dim": record.embedding_dim,
+        "embedding_version": record.embedding_version,
+        "protected": int(record.protected),  # T-1-07: explicit cast
+        "salience": record.salience,
+        "confidence": record.confidence,
+        "provisional": int(record.provisional),
+        "valid_from": _dt_to_str(record.valid_from),
+        "valid_until": _dt_to_str(record.valid_until),
+        "superseded_by": record.superseded_by,
+        "t0_ref": record.t0_ref,
+        "source_refs": json.dumps(record.source_refs),
+        "access_count": record.access_count,
+        "last_accessed": _dt_to_str(record.last_accessed),
+        "created_at": _dt_to_str(record.created_at),
+        "graph_edges": json.dumps(record.graph_edges),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -189,50 +245,41 @@ class SqliteT1:
 
     async def upsert(self, record: MemoryRecord) -> None:
         """Insert or replace a record (keyed by record.id)."""
-        await self._db.execute(
-            """
-            INSERT OR REPLACE INTO t1_records (
-                id, user_id, session_id, agent_id, record_type, content, summary,
-                keywords, embedding_model, embedding_dim, embedding_version,
-                protected, salience, confidence, provisional,
-                valid_from, valid_until, superseded_by, t0_ref, source_refs,
-                access_count, last_accessed, created_at, graph_edges
-            ) VALUES (
-                :id, :user_id, :session_id, :agent_id, :record_type, :content, :summary,
-                :keywords, :embedding_model, :embedding_dim, :embedding_version,
-                :protected, :salience, :confidence, :provisional,
-                :valid_from, :valid_until, :superseded_by, :t0_ref, :source_refs,
-                :access_count, :last_accessed, :created_at, :graph_edges
-            )
-            """,
-            {
-                "id": record.id,
-                "user_id": record.user_id,
-                "session_id": record.session_id,
-                "agent_id": record.agent_id,
-                "record_type": str(record.record_type.value),
-                "content": record.content,
-                "summary": record.summary,
-                "keywords": json.dumps(record.keywords),
-                "embedding_model": record.embedding_model,
-                "embedding_dim": record.embedding_dim,
-                "embedding_version": record.embedding_version,
-                "protected": int(record.protected),  # T-1-07: explicit cast
-                "salience": record.salience,
-                "confidence": record.confidence,
-                "provisional": int(record.provisional),
-                "valid_from": _dt_to_str(record.valid_from),
-                "valid_until": _dt_to_str(record.valid_until),
-                "superseded_by": record.superseded_by,
-                "t0_ref": record.t0_ref,
-                "source_refs": json.dumps(record.source_refs),
-                "access_count": record.access_count,
-                "last_accessed": _dt_to_str(record.last_accessed),
-                "created_at": _dt_to_str(record.created_at),
-                "graph_edges": json.dumps(record.graph_edges),
-            },
-        )
+        await self._db.execute(_INSERT_SQL, _record_params(record))
         await self._db.commit()
+
+    async def supersede(
+        self,
+        old_id: str,
+        new_record: MemoryRecord,
+        embedding: list[float],
+    ) -> None:
+        """Atomically retire old_id and insert new_record + embedding in one transaction.
+
+        Transaction wraps three statements:
+        1. UPDATE t1_records SET valid_until=?, superseded_by=? WHERE id=? AND user_id=?
+           (user_id predicate prevents cross-user tampering — T-02-05)
+        2. INSERT OR REPLACE new_record via _INSERT_SQL + _record_params()
+           (new_record.graph_edges must already carry the supersedes edge)
+        3. INSERT OR REPLACE vec_t1(record_id, embedding) for the new vector
+
+        On any exception: rollback and re-raise (T-02-06 atomicity guarantee).
+        """
+        now_str = _dt_to_str(datetime.now(timezone.utc))
+        try:
+            await self._db.execute(
+                "UPDATE t1_records SET valid_until=?, superseded_by=? WHERE id=? AND user_id=?",
+                (now_str, new_record.id, old_id, new_record.user_id),
+            )
+            await self._db.execute(_INSERT_SQL, _record_params(new_record))
+            await self._db.execute(
+                "INSERT OR REPLACE INTO vec_t1(record_id, embedding) VALUES (?, ?)",
+                (new_record.id, _v32(embedding)),
+            )
+            await self._db.commit()
+        except Exception:
+            await self._db.rollback()
+            raise
 
     async def get(self, record_id: str) -> MemoryRecord | None:
         """Fetch a record by id; returns None if not found."""
@@ -243,6 +290,24 @@ class SqliteT1:
         if row is None:
             return None
         # row_factory already converted it to MemoryRecord
+        return row  # type: ignore[return-value]
+
+    async def find_by_t0_ref(self, t0_ref: str, user_id: str) -> MemoryRecord | None:
+        """Return the live provisional record with this t0_ref, scoped to user_id.
+
+        Idempotency fence for provisional record reconciliation (CONS-06/07).
+        Returns the live provisional record with this t0_ref, or None if no such record exists.
+        Only live records (valid_until IS NULL) are returned — superseded provisionals are excluded.
+
+        user_id predicate is mandatory — no cross-user lookup (D-02/D-03, T-02-07).
+        """
+        cursor = await self._db.execute(
+            "SELECT * FROM t1_records WHERE t0_ref = ? AND user_id = ? AND valid_until IS NULL",
+            (t0_ref, user_id),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
         return row  # type: ignore[return-value]
 
     async def update(self, record_id: str, **fields: object) -> None:
@@ -359,9 +424,10 @@ class SqliteT1:
         """Return the most recently created live record for user_id.
 
         Used by test_fast_write_schema_columns to verify schema columns.
+        WR-01 fix: filters valid_until IS NULL so superseded records are excluded.
         """
         cursor = await self._db.execute(
-            "SELECT * FROM t1_records WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+            "SELECT * FROM t1_records WHERE user_id = ? AND valid_until IS NULL ORDER BY created_at DESC LIMIT 1",
             (user_id,),
         )
         row = await cursor.fetchone()
