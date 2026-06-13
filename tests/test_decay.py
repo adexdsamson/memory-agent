@@ -113,11 +113,12 @@ class TestDecay:
         assert 0.0 <= score <= 1.0, f"Score out of [0,1]: {score}"
 
         # Part 2: decay_pass must NOT yield the protected record at all (FORG-03)
-        async def _mock_live_records(user_id: str):  # type: ignore[return]
-            yield protected_record
-
+        # Use a static method to avoid the implicit `self` argument that would
+        # be injected if a bare function were assigned as a class attribute.
         class _MockStore:
-            live_records = _mock_live_records
+            @staticmethod
+            async def live_records(user_id: str):  # type: ignore[return]
+                yield protected_record
 
         async def _collect() -> list:  # type: ignore[return]
             results = []
