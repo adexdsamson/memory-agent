@@ -892,7 +892,9 @@ STORE-03 requires "the canonical vault (T2) is a git-versioned markdown adapter.
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> Resolved in planning: Q1 (voyageai.AsyncClient) → wrap the sync client in `asyncio.to_thread` per D-13 (uniform with the other cloud adapters); confirm `output_dimension` parity at install time. Q2 (PostgresT1 dim check at open()) → enforce via the MemoryEngine startup dim assertion + a `SELECT extversion` guard; not blocking. Q3 (hermetic OSS mock) → use `moto[s3]` as the always-on 2nd object-store backend (Plan 04-00/04-06), no OSS credentials needed for CI.
 
 1. **voyageai.AsyncClient vs asyncio.to_thread**
    - What we know: `voyageai.AsyncClient` is confirmed present in 0.4.0.
