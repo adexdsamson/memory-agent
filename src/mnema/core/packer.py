@@ -185,15 +185,34 @@ def pack_records(
     packed: list[MemoryRecord] = []
     used = 0
 
-    # Pass 1: reserve slots for critical records (in ranked order)
+    # Pass 1: reserve slots for critical records (in ranked order).
+    # WR-03: protected records are ALWAYS included regardless of budget — silently
+    # dropping a protected fact (e.g. an allergy) from the packed output would
+    # violate the "never forget a protected fact" safety guarantee. Non-protected
+    # critical records (live FACT-type but not protected) are included only when they
+    # fit within the budget; if they don't fit a warning is emitted so operators can
+    # detect misconfigured budgets.
+    import warnings  # noqa: PLC0415
+
     for rec in critical:
         cost = counter.count(rec.summary or rec.content[:80])
-        if used + cost <= budget:
+        if rec.protected:
+            # Protected records are always included — even if it means exceeding budget.
+            packed.append(rec)
+            used += cost
+        elif used + cost <= budget:
             packed.append(rec)
             used += cost
 
-    # Build O(1) lookup of already-packed IDs before Pass 2
+    # Warn if any non-protected critical records were dropped due to budget pressure.
     packed_ids: set[str] = {r.id for r in packed}
+    dropped_critical = [r for r in critical if r.id not in packed_ids]
+    if dropped_critical:
+        warnings.warn(
+            f"pack_records: budget={budget} too small to include all critical records; "
+            f"{len(dropped_critical)} critical record(s) dropped (none were protected).",
+            stacklevel=2,
+        )
 
     # Pass 2: fill remaining budget from all ranked records (skip already-packed)
     for rec in ranked:
