@@ -371,6 +371,25 @@ class SqliteT1:
     # VectorIndex Protocol methods
     # -----------------------------------------------------------------------
 
+    async def upsert_with_vector(self, record: MemoryRecord, embedding: list[float]) -> None:
+        """Atomically insert record + vector in one transaction (CR-04).
+
+        Wraps the INSERT into t1_records and the INSERT OR REPLACE into vec_t1
+        in a single BEGIN/COMMIT so a crash between the two cannot leave an
+        orphaned record with no searchable vector.
+        """
+        try:
+            await self._db.execute("BEGIN")
+            await self._db.execute(_INSERT_SQL, _record_params(record))
+            await self._db.execute(
+                "INSERT OR REPLACE INTO vec_t1(record_id, embedding) VALUES (?, ?)",
+                (record.id, _v32(embedding)),
+            )
+            await self._db.commit()
+        except Exception:
+            await self._db.rollback()
+            raise
+
     async def upsert_vector(self, record_id: str, embedding: list[float]) -> None:
         """Insert or replace a vector for record_id.
 

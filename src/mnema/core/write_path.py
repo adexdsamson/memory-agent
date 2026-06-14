@@ -167,8 +167,10 @@ class WritePath:
                 embedding_version=getattr(self._embedder, "version", None),
             )
 
-            await self._record_store.upsert(record)
-            await self._vector_index.upsert_vector(record.id, embedding)
+            # CR-04: upsert_with_vector atomically writes record + vector in one
+            # transaction — a crash between the two cannot leave an orphaned
+            # provisional record with no searchable vector.
+            await self._record_store.upsert_with_vector(record, embedding)
             t1_id = record.id
 
         # Step 4: Enqueue to staging queue for offline consolidation consumer.

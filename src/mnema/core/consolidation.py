@@ -401,5 +401,7 @@ class ConsolidationPipeline:
             embedding_dim=self._embedder.dim,
             embedding_version=getattr(self._embedder, "version", None),
         )
-        await self._record_store.upsert(record)
-        await self._vector_index.upsert_vector(record.id, embedding)
+        # CR-04: upsert_with_vector atomically writes record + vector in one
+        # transaction — a crash between the two operations cannot leave an orphaned
+        # T1 record that is invisible to KNN but visible to live_records/decay_pass.
+        await self._record_store.upsert_with_vector(record, embedding)

@@ -64,3 +64,19 @@ class RecordStore(Protocol):
         (idempotency fence — prevents duplicate live records on rerun).
         """
         ...
+
+    async def upsert_with_vector(
+        self,
+        record: MemoryRecord,
+        embedding: list[float],
+    ) -> None:
+        """Atomically insert record + vector in one transaction (CR-04).
+
+        Wraps the INSERT into t1_records and the INSERT OR REPLACE into vec_t1
+        in a single BEGIN/COMMIT block so a crash between the two statements
+        cannot leave an orphaned record with no searchable vector.
+
+        Used by ConsolidationPipeline._insert_new_confirmed() and WritePath for
+        the provisional fast-path write.
+        """
+        ...
