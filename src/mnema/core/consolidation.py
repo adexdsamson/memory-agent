@@ -161,6 +161,10 @@ class ConsolidationPipeline:
         while True:
             try:
                 items.append(self._staging_queue.get_nowait())
+                # CR-01: task_done() is required after every get_nowait() so the
+                # queue's unfinished-task counter stays accurate. Without it any
+                # caller that awaits queue.join() will deadlock permanently.
+                self._staging_queue.task_done()
             except asyncio.QueueEmpty:
                 break
         return items
@@ -309,13 +313,18 @@ class ConsolidationPipeline:
         """
         if verdict == "refine":
             # CONS-05: non-contradicting refinement — merge into existing record in place.
-            # Merge: overwrite content + summary, update salience and keywords.
+            # WR-01: protected flag is monotonic upward — the refine path INTENTIONALLY
+            # does NOT downgrade it. protected_final ensures consolidation can SET but
+            # NEVER CLEAR the protected flag (mirrors the reconciliation path at CONS-06).
+            # Do NOT remove or invert this guard in future refactors.
+            protected_final = bool(ext.get("protected", False)) or existing.protected
             await self._record_store.update(
                 existing.id,
                 content=new_content,
                 summary=new_content[:60].strip(),
                 salience=float(ext.get("salience", existing.salience)),
                 keywords=list(ext.get("keywords", existing.keywords)),
+                protected=protected_final,
             )
             return
 
