@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Schema, Ports & Local Core Foundation** - Scoped schema, six ports, local adapters, and `remember` + `recall(dense)` end-to-end on the local stack (completed 2026-06-10)
 - [x] **Phase 2: Consolidation & Supersession** - Offline extraction, salience, entity resolution, active supersession, and provisional reconciliation (completed 2026-06-14)
-- [ ] **Phase 3: Forgetting, Salience Floor, Budget Packer & MCP** - Provable protected-fact survival, recoverable eviction, two-pass budget recall, T2 vault, and the MCP surface
+- [x] **Phase 3: Forgetting, Salience Floor, Budget Packer & MCP** - Provable protected-fact survival, recoverable eviction, two-pass budget recall, T2 vault, and the MCP surface (completed 2026-06-14)
 - [ ] **Phase 4: Cloud Providers & Backends** - Real Qwen/Anthropic/Voyage adapters, pgvector/OSS/git backends, config factory, and conformance on ≥2 backends per axis
 - [ ] **Phase 5: Reference Demo & Evaluation** - Nutrition-coach demo and a naive-vs-MNEMA before/after baseline
 
@@ -121,7 +121,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-04-PLAN.md — MCP server + in-process tests GREEN + Phase 3 phase gate (IFACE-02)
+- [x] 03-04-PLAN.md — MCP server + in-process tests GREEN + Phase 3 phase gate (IFACE-02)
 
 ### Phase 4: Cloud Providers & Backends
 
@@ -164,6 +164,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
-| 3. Forgetting, Salience Floor, Budget Packer & MCP | 4/5 | In Progress|  |
+| 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
