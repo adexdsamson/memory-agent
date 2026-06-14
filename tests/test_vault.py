@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-
 # ---------------------------------------------------------------------------
 # TIER-03: LocalFSVault unit tests
 # ---------------------------------------------------------------------------
@@ -36,7 +35,6 @@ class TestLocalFSVault:
     async def test_promote_writes_markdown(self, tmp_path) -> None:
         """TIER-03: promote() writes a markdown file for the user."""
         from mnema.adapters.vault.local_fs_vault import LocalFSVault  # noqa: PLC0415
-
         from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
 
         vault = LocalFSVault(str(tmp_path / "vault"))
@@ -60,7 +58,6 @@ class TestLocalFSVault:
     async def test_promote_deduplication(self, tmp_path) -> None:
         """TIER-03: Promoting the same record twice does not duplicate it (D3-12)."""
         from mnema.adapters.vault.local_fs_vault import LocalFSVault  # noqa: PLC0415
-
         from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
 
         vault = LocalFSVault(str(tmp_path / "vault"))
@@ -85,7 +82,6 @@ class TestLocalFSVault:
     async def test_promote_sectioned_by_type(self, tmp_path) -> None:
         """TIER-03: Vault file sections records by record_type."""
         from mnema.adapters.vault.local_fs_vault import LocalFSVault  # noqa: PLC0415
-
         from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
 
         vault = LocalFSVault(str(tmp_path / "vault"))
