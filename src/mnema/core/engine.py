@@ -396,8 +396,12 @@ class MemoryEngine:
                 and vault/eviction for that user. When None, processes all staged
                 users (global behavior — D3-14 compatible with explicit MCP arg).
         """
-        await self._consolidation_pipeline.run(user_id=user_id)
-        await self._scheduler.trigger_now()
+        # CR-05: always call trigger_now() even if the pipeline raises, so the
+        # scheduler is never left in an inconsistent "in-progress" state.
+        try:
+            await self._consolidation_pipeline.run(user_id=user_id)
+        finally:
+            await self._scheduler.trigger_now()
 
     # -------------------------------------------------------------------------
     # Ergonomic front door
