@@ -43,6 +43,18 @@ if TYPE_CHECKING:
     from mnema.ports.llm import LLMProvider
     from mnema.ports.object_store import ObjectStorePort
 
+# ---------------------------------------------------------------------------
+# Module-level tunable constants
+# ---------------------------------------------------------------------------
+
+KEEP_THRESHOLD: float = 0.3
+"""Records with keep_score < KEEP_THRESHOLD are evicted to cold storage (D3-01).
+
+Tune against Phase 5 demo evaluation. 0.3 is the starting point per D3-01.
+Half of the keep_score range [0, 1]; a record with no access, average salience (0.5),
+and 14+ days of age will typically fall below this threshold.
+"""
+
 
 class MemoryEngine:
     """Five-verb memory engine: remember, recall, forget, consolidate, expand.
@@ -65,6 +77,7 @@ class MemoryEngine:
         t0: "ObjectStorePort",
         scheduler: Any,  # async Scheduler (see mnema.ports.scheduler.Scheduler)
         llm: "LLMProvider | None" = None,
+        vault: Any = None,  # VaultStore | None — 6th adapter axis (Phase 3)
     ) -> None:
         """Construct MemoryEngine, asserting embedding dim consistency (PROV-06).
 
@@ -76,6 +89,7 @@ class MemoryEngine:
             llm: LLM provider for consolidation (extraction + contradiction judging).
                 Defaults to StubLLM() if omitted — backward-compatible default for
                 all existing tests that construct MemoryEngine without llm=.
+            vault: Optional T2 canonical vault adapter (VaultStore Protocol — Phase 3).
 
         Raises:
             ValueError: If embedder.dim != t1._dim (PROV-06 startup assertion).
@@ -100,6 +114,7 @@ class MemoryEngine:
         self._t1: Any = t1
         self._t0: "ObjectStorePort" = t0
         self._scheduler: Any = scheduler
+        self._vault: Any = vault
 
         # Internal plumbing
         self._buffer: RecentSessionBuffer = RecentSessionBuffer(k=20)
@@ -240,14 +255,112 @@ class MemoryEngine:
     async def forget(
         self, record_id: str, *, user_id: str, reason: str = ""
     ) -> None:
-        """Mark a record for eviction (stub — Phase 3 will implement decay/eviction).
+        """Explicitly evict a single record (forced, no keep_score check).
 
-        Phase 3 will: set valid_until, move to T0 cold storage, clear from vector
-        index, add to eviction audit log. For Phase 1 this is a no-op.
+        Performs the 4-step eviction sequence:
+          1. set valid_until = now (retire from live index)
+          2. delete_vector (remove from KNN index — prevents ghost-record recall)
+          3. archive to T0 cold store (recoverable — NEVER hard-delete)
+          4. append JSONL audit entry (FORG-04)
 
-        # TODO Phase 3: evict to cold storage — set valid_until, archive to T0/OSS
+        Scope and protection checks:
+          - If record does not exist: silently returns (no-op).
+          - If record.user_id != user_id: raises ValueError (T-03-01-01).
+          - If record.protected: raises ValueError (T-03-01-02).
+
+        Args:
+            record_id: The id of the record to evict.
+            user_id: Must match record.user_id (scope check).
+            reason: Optional reason string appended to the audit entry.
         """
-        pass  # noqa: PIE790
+        from datetime import datetime, timezone  # noqa: PLC0415
+
+        now = datetime.now(timezone.utc)
+
+        record: Optional[MemoryRecord] = await self._t1.get(record_id)
+        if record is None:
+            return  # no-op for nonexistent records
+
+        # T-03-01-01: cross-user scope check
+        if record.user_id != user_id:
+            raise ValueError(
+                f"record {record_id!r} does not belong to user {user_id!r}"
+            )
+
+        # T-03-01-02: protected records may never be explicitly forgotten
+        if record.protected:
+            raise ValueError(
+                f"Cannot explicitly forget protected record {record_id!r}"
+            )
+
+        # Step 1: retire from live index
+        await self._t1.update(record_id, valid_until=now)
+        # Step 2: remove from KNN index (ghost-record prevention)
+        await self._t1.delete_vector(record_id)
+        # Step 3: archive to cold store (recoverable, not a hard-delete)
+        await self._t0.archive(record)
+        # Step 4: append audit entry (FORG-04)
+        entry = {
+            "record_id": record_id,
+            "user_id": user_id,
+            "keep_score": None,
+            "evicted_at": now.isoformat(),
+            "reason": reason or "explicit_forget",
+        }
+        await self._t0.append_audit(entry)
+
+    async def evict(self, *, user_id: str) -> int:
+        """Run a batch decay-based eviction pass for user_id.
+
+        Consumes decay_pass(self._t1, user_id) and evicts all records whose
+        keep_score < KEEP_THRESHOLD using the 4-step eviction sequence:
+          1. update valid_until (retire from live index)
+          2. delete_vector (remove from KNN index — ghost-record prevention)
+          3. archive to T0 cold store (recoverable, never hard-delete — D3-02)
+          4. append JSONL audit entry (FORG-04)
+
+        FORG-03: No `not record.protected` guard here — decay_pass structural
+        guarantee ensures protected records never reach this point. This is
+        intentional: the code comment is the proof, the Hypothesis property test
+        (test_protected_records_never_evicted) is the verification.
+
+        Args:
+            user_id: The user whose live records to decay-score and evict.
+
+        Returns:
+            The count of records evicted in this pass.
+        """
+        from datetime import datetime, timezone  # noqa: PLC0415
+
+        from mnema.core.decay import decay_pass  # noqa: PLC0415
+
+        now = datetime.now(timezone.utc)
+        evicted = 0
+
+        async for record, score in decay_pass(self._t1, user_id, now=now):
+            if score >= KEEP_THRESHOLD:
+                continue
+            # No not-protected guard — decay_pass structural guarantee (FORG-03).
+            # Protected records cannot reach this point; proven by Hypothesis test.
+
+            # Step 1: retire from live index
+            await self._t1.update(record.id, valid_until=now)
+            # Step 2: remove from KNN index (ghost-record prevention)
+            await self._t1.delete_vector(record.id)
+            # Step 3: archive to cold store (recoverable, not a hard-delete)
+            await self._t0.archive(record)
+            # Step 4: append audit entry (FORG-04)
+            entry = {
+                "record_id": record.id,
+                "user_id": record.user_id,
+                "keep_score": score,
+                "evicted_at": now.isoformat(),
+                "reason": f"keep_score={score:.4f} < KEEP_THRESHOLD={KEEP_THRESHOLD}",
+            }
+            await self._t0.append_audit(entry)
+            evicted += 1
+
+        return evicted
 
     async def consolidate(self, *, force: bool = False) -> None:
         """Offline consolidation — drain staging queue, extract, resolve, decay.
