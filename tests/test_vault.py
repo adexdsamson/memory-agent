@@ -12,28 +12,13 @@ test_consolidate_user_isolation — isolation test: consolidate(user_id=u1) must
 test_promotion_on_consolidation — integration: confirmed high-salience records
     promoted to vault during consolidation.
 
-All tests use deferred imports and will FAIL until Plan 03-03 implements
-LocalFSVault and the vault promotion hook in ConsolidationPipeline.
+GREEN after Plan 03-03 implementation of LocalFSVault and ConsolidationPipeline
+vault+eviction wiring. engine_with_vault fixture is provided by conftest.py.
 """
 
 from __future__ import annotations
 
-import pytest
-
-# ---------------------------------------------------------------------------
-# engine_with_vault fixture — placeholder (replaced by conftest in Plan 03-03)
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-async def engine_with_vault(tmp_path, stub_embedder):  # type: ignore[return]
-    """Placeholder fixture: yields None in Wave 0.
-
-    Plan 03-03 will replace this with a fully-wired MemoryEngine that includes
-    a LocalFSVault adapter injected as the vault= kwarg.  Tests using this
-    fixture will FAIL at assertion time in RED state.
-    """
-    yield None  # RED: replaced by Plan 03-03
+from datetime import datetime, timedelta, timezone
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +124,7 @@ class TestLocalFSVault:
 # ---------------------------------------------------------------------------
 
 
-async def test_vault_promotion_before_eviction(engine_with_vault) -> None:
+async def test_vault_promotion_before_eviction(engine_with_vault, tmp_path) -> None:
     """Ordering test: vault promotion pass runs BEFORE eviction pass.
 
     Scenario: seed a record with salience=0.72 (above VAULT_SALIENCE_THRESHOLD=0.7)
@@ -151,13 +136,62 @@ async def test_vault_promotion_before_eviction(engine_with_vault) -> None:
     (b) The record must have valid_until set (it was evicted after promotion).
 
     This proves the two-pass ordering: vault pass first, eviction pass second.
-    GREEN implementation requires Plan 03-03.
+    If eviction ran first, valid_until would be set BEFORE promote(), but promote()
+    only promotes records with valid_until IS NULL — so the vault would be empty.
     """
-    # TODO Plan 03-03: seed salience=0.72 + backdated record; after consolidate()
-    # assert vault contains it AND valid_until is set.
-    assert False, (  # noqa: B011
-        "TODO Plan 03-03: seed salience=0.72 + old record; after consolidate() "
-        "assert vault contains it AND valid_until is set"
+    from mnema.adapters.vault.local_fs_vault import LocalFSVault  # noqa: PLC0415
+    from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
+
+    engine = engine_with_vault
+    vault: LocalFSVault = engine._vault  # type: ignore[attr-defined]
+
+    # Seed a record directly into T1 (bypass write_path to control salience/date precisely)
+    # salience=0.72 (above VAULT_SALIENCE_THRESHOLD=0.7)
+    # created_at backdated 180 days (keep_score will be very low, well below 0.3)
+    # access_count=0 (no access reinforcement)
+    # provisional=False (confirmed — eligible for vault)
+    # valid_until=None (live)
+    now = datetime.now(timezone.utc)
+    old_date = now - timedelta(days=180)
+
+    record = MemoryRecord(
+        user_id="u1",
+        session_id="s1",
+        record_type=RecordType.FACT,
+        content="borderline high-salience old fact",
+        summary="borderline high-salience old fact",
+        salience=0.72,
+        provisional=False,
+        created_at=old_date,
+        access_count=0,
+    )
+
+    # Insert into T1 with a zero embedding (128-dim stub)
+    embedding = [0.0] * engine._embedder.dim  # type: ignore[attr-defined]
+    await engine._t1.upsert_with_vector(record, embedding)  # type: ignore[attr-defined]
+
+    # Run consolidation with no staged items — vault+eviction pass still runs on
+    # the live records for any user_id if processed_user_ids is non-empty.
+    # We stage a dummy turn for u1 so processed_user_ids includes "u1".
+    await engine.remember(
+        "dummy turn to trigger consolidation for u1",
+        user_id="u1",
+        session_id="s1",
+    )
+    await engine.consolidate()
+
+    # (a) Vault must contain the record's summary (promoted before eviction)
+    vault_content = await vault.get_user_model("u1")
+    assert "borderline high-salience old fact" in vault_content, (
+        f"Vault must contain promoted record; got vault content: {vault_content!r}"
+    )
+
+    # (b) T1 record must have valid_until set (evicted after vault promotion)
+    updated_record = await engine._t1.get(record.id)  # type: ignore[attr-defined]
+    assert updated_record is not None, "Record must still exist in T1 (not hard-deleted)"
+    assert updated_record.valid_until is not None, (
+        "Record must have valid_until set (evicted) after consolidation — "
+        "vault promotion must have run first (Pitfall 8 ordering guarantee)"
     )
 
 
@@ -171,16 +205,57 @@ async def test_consolidate_user_isolation(engine_with_vault) -> None:
 
     Stage a turn for u1 AND a turn for u2.  Call engine.consolidate(user_id='u1').
     Assert:
-    - u2's staged turn was NOT consumed (still pending or u2's vault untouched).
+    - u2's staged turn was NOT consumed (verified by checking u2's vault is empty).
     - u2's T1 records were NOT promoted or evicted.
-
-    GREEN implementation requires Plan 03-03 user_id filter on
-    ConsolidationPipeline.run().
     """
-    # TODO Plan 03-03: stage u1 + u2 turns; consolidate(u1); verify u2 unaffected
-    assert False, (  # noqa: B011
-        "TODO Plan 03-03: stage turns for u1 and u2; consolidate u1; "
-        "verify u2's vault and T1 are untouched"
+    from mnema.adapters.vault.local_fs_vault import LocalFSVault  # noqa: PLC0415
+    from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
+
+    engine = engine_with_vault
+    vault: LocalFSVault = engine._vault  # type: ignore[attr-defined]
+
+    # Stage a turn for u1 and a turn for u2
+    await engine.remember(
+        "u1 preference: gluten free",
+        user_id="u1",
+        session_id="s1",
+    )
+    await engine.remember(
+        "u2 preference: dairy free",
+        user_id="u2",
+        session_id="s2",
+    )
+
+    # Seed a high-salience confirmed record for u2 to see if it gets promoted
+    now_ref = datetime.now(timezone.utc)
+    u2_record = MemoryRecord(
+        user_id="u2",
+        session_id="s2",
+        record_type=RecordType.FACT,
+        content="u2 critical fact",
+        summary="u2 critical fact",
+        salience=0.9,
+        provisional=False,
+        created_at=now_ref,
+    )
+    embedding = [0.0] * engine._embedder.dim  # type: ignore[attr-defined]
+    await engine._t1.upsert_with_vector(u2_record, embedding)  # type: ignore[attr-defined]
+
+    # Consolidate ONLY for u1 — u2's staged turn and records must be untouched
+    await engine.consolidate(user_id="u1")
+
+    # u2's vault must be empty (no promotion ran for u2)
+    u2_vault_content = await vault.get_user_model("u2")
+    assert "u2 critical fact" not in u2_vault_content, (
+        "consolidate(user_id='u1') must NOT promote u2's records to vault — "
+        f"got u2 vault content: {u2_vault_content!r}"
+    )
+
+    # u2's high-salience record must still be live (valid_until is None)
+    u2_rec_after = await engine._t1.get(u2_record.id)  # type: ignore[attr-defined]
+    assert u2_rec_after is not None, "u2 record must still exist in T1"
+    assert u2_rec_after.valid_until is None, (
+        "consolidate(user_id='u1') must NOT evict u2's records"
     )
 
 
@@ -194,10 +269,37 @@ async def test_promotion_on_consolidation(engine_with_vault) -> None:
 
     After engine.consolidate(), any confirmed (non-provisional), live record with
     salience >= VAULT_SALIENCE_THRESHOLD must appear in the vault user model.
-    GREEN implementation requires Plan 03-03 vault promotion hook.
     """
-    # TODO Plan 03-03: remember → consolidate → assert record appears in vault
-    assert False, (  # noqa: B011
-        "TODO Plan 03-03: remember high-salience fact; consolidate(); "
-        "assert record appears in vault get_user_model() output"
+    from mnema.adapters.vault.local_fs_vault import LocalFSVault  # noqa: PLC0415
+    from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
+
+    engine = engine_with_vault
+    vault: LocalFSVault = engine._vault  # type: ignore[attr-defined]
+
+    # Seed a confirmed, high-salience, live fact record directly into T1
+    record = MemoryRecord(
+        user_id="u1",
+        session_id="s1",
+        record_type=RecordType.FACT,
+        content="allergy: tree nuts",
+        summary="allergy: tree nuts",
+        salience=0.95,
+        provisional=False,
+    )
+    embedding = [0.0] * engine._embedder.dim  # type: ignore[attr-defined]
+    await engine._t1.upsert_with_vector(record, embedding)  # type: ignore[attr-defined]
+
+    # Stage a dummy turn so consolidation runs the vault pass for u1
+    await engine.remember(
+        "trigger consolidation for u1",
+        user_id="u1",
+        session_id="s1",
+    )
+    await engine.consolidate()
+
+    # The high-salience confirmed record must appear in the vault
+    vault_content = await vault.get_user_model("u1")
+    assert "allergy: tree nuts" in vault_content, (
+        "CONS-09: confirmed high-salience record must appear in vault after consolidate(); "
+        f"got vault content: {vault_content!r}"
     )

@@ -14,6 +14,10 @@ Pipeline steps (per RESEARCH.md §System Architecture Diagram):
   5. Entity resolution — embed new content; KNN over live records (ENTITY_MAX_DISTANCE)
   6. Contradiction judge — CONS-08 gate: protected/FACT → contradiction_pending edge only
   7. decay_pass — compute keep_score over all live records after batch (FORG-01)
+  8. Vault promotion pass — promote confirmed high-salience live records to T2 vault
+     (CONS-09, Pitfall 8: MUST run BEFORE eviction pass for each uid)
+  9. Eviction pass — retire records below KEEP_THRESHOLD (FORG-02)
+     (Pitfall 8: SEPARATE loop from vault promotion — vault first, eviction second)
 """
 
 from __future__ import annotations
@@ -37,6 +41,21 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 # Module-level constants
 # ---------------------------------------------------------------------------
+
+VAULT_SALIENCE_THRESHOLD: float = 0.7
+"""Records confirmed + salience >= this value are promoted to T2 vault (D3-11, CONS-09).
+
+Tune in Phase 5 demo evaluation. 0.7 is Claude's-discretion starting point per D3-11.
+Records must also be non-provisional and have valid_until IS NULL (live) to qualify.
+"""
+
+KEEP_THRESHOLD: float = 0.3
+"""Records with keep_score < KEEP_THRESHOLD are evicted to cold storage (D3-01, FORG-02).
+
+Mirrors engine.KEEP_THRESHOLD — tune both together.
+Defined independently here to avoid circular imports between consolidation and engine.
+Tune against Phase 5 demo evaluation. 0.3 is the Claude's-discretion starting point.
+"""
 
 ENTITY_MAX_DISTANCE: float = math.sqrt(2.0 - 2.0 * 0.85)
 """L2-distance threshold ≈ cosine similarity >= 0.85 for L2-normalized vectors.
@@ -85,8 +104,10 @@ class ConsolidationPipeline:
         record_store: "RecordStore",
         vector_index: "VectorIndex",
         staging_queue: asyncio.Queue[Any],
+        vault: Any = None,
+        t0: Any = None,
     ) -> None:
-        """Construct the pipeline with all five injected collaborators.
+        """Construct the pipeline with all injected collaborators.
 
         All parameters are keyword-only to prevent positional-order bugs.
         No concrete adapter classes are imported here — structural typing only
@@ -98,26 +119,56 @@ class ConsolidationPipeline:
             record_store: RecordStore (upsert/get/update/supersede/find_by_t0_ref).
             vector_index: VectorIndex (vector_search/upsert_vector).
             staging_queue: asyncio.Queue drained on each run().
+            vault: Optional VaultStore adapter for T2 canonical vault promotion
+                (CONS-09). When None, vault promotion pass is skipped.
+            t0: Optional ObjectStorePort for cold-store archive + eviction audit
+                (FORG-02/04). When None, archive and audit steps are skipped
+                (backward-compatible for tests that omit t0).
         """
         self._llm = llm
         self._embedder = embedder
         self._record_store = record_store
         self._vector_index = vector_index
         self._staging_queue = staging_queue
+        self._vault = vault
+        self._t0 = t0
 
     # -----------------------------------------------------------------------
     # Public entry point
     # -----------------------------------------------------------------------
 
-    async def run(self) -> None:
-        """Drain the staging queue and process all staged turns (steps 1-7).
+    async def run(self, *, user_id: str | None = None) -> None:
+        """Drain the staging queue and process all staged turns (steps 1-9).
+
+        When user_id is set, processes only that user's staged turns and runs
+        vault/eviction scoped to that user. When None, processes all staged users
+        (global behavior).
 
         Idempotent: re-running on an empty queue is a no-op. If a t0_ref was
         already reconciled in a prior run, find_by_t0_ref returns the upgraded
         record and no duplicate is inserted (CONS-07).
+
+        Pitfall 8 (load-bearing): For each processed uid, vault promotion (Loop 1)
+        runs BEFORE eviction (Loop 2). These are TWO SEPARATE for-loops — a single
+        merged loop cannot guarantee promotion before eviction for a record that
+        qualifies for both (salience >= threshold AND keep_score < KEEP_THRESHOLD).
+
+        Args:
+            user_id: Optional user to scope this consolidation run to.
+                When set, only that user's staged turns are processed and only
+                that user's records are promoted/evicted.
+                When None, all staged users are processed (global behavior).
         """
+        from datetime import datetime, timezone  # noqa: PLC0415
+
+        from mnema.core.decay import decay_pass  # noqa: PLC0415
+
         # Step 1: Drain the staging queue
         items = self._drain_queue()
+
+        # Step 1b: user_id filter — when scoped, only process turns for that user
+        if user_id is not None:
+            items = [i for i in items if i.get("user_id") == user_id]
 
         # Steps 2-6: Process each staged turn
         for item in items:
@@ -127,24 +178,77 @@ class ConsolidationPipeline:
             # (Task 2 adds this key). An empty string is the safe fallback for any
             # item written by a pre-Task-2 WritePath; all T1 queries will return
             # empty results for "" so no cross-user data leak is possible.
-            user_id: str = item.get("user_id", "")
+            item_user_id: str = item.get("user_id", "")
             session_id: str = turn.session_id
-            await self._process_turn(turn.content, t0_ref, user_id, session_id)
+            await self._process_turn(turn.content, t0_ref, item_user_id, session_id)
 
-        # Step 7: decay_pass over all live records, per unique user_id processed.
-        # In Phase 2 we collect unique user_ids from the drained items and run one
-        # pass per user. Phase 3 will consume the yielded scores for eviction
-        # decisions; Phase 2 simply runs the pass (FORG-01 requirement).
-        from mnema.core.decay import decay_pass  # noqa: PLC0415
-
+        # Collect unique user_ids that were actually processed
         processed_user_ids: set[str] = {
             item.get("user_id", "")
             for item in items
             if item.get("user_id")
         }
+
+        now = datetime.now(timezone.utc)
+
+        # Steps 7-9: Per-uid passes — TWO SEPARATE LOOPS per uid (Pitfall 8).
+        # ORDERING IS LOAD-BEARING: vault promotion (Loop 1) MUST run before
+        # eviction (Loop 2) for every uid. A record with high salience AND low
+        # keep_score must land in the vault BEFORE it is retired from T1.
+        # DO NOT merge these loops — the separation is the correctness guarantee.
         for uid in processed_user_ids:
-            async for _record, _score in decay_pass(self._record_store, uid):
-                pass  # Phase 3 will act on scores; Phase 2 exercises the code path
+
+            # ----------------------------------------------------------------
+            # Loop 1: Vault promotion pass (FIRST — before any eviction)
+            # CONS-09: promote confirmed, non-provisional, live, high-salience records
+            # to the T2 canonical vault.
+            # Pitfall 8: this loop completes in full for uid BEFORE Loop 2 starts.
+            # ----------------------------------------------------------------
+            if self._vault is not None:
+                # Cast to Any to avoid pyright's strict Protocol return-type check on
+                # live_records() — RecordStore Protocol declares it as
+                # `async def ... -> AsyncIterator[MemoryRecord]` but the actual
+                # implementations use async generators. decay_pass uses `Any` for the
+                # same reason; the async for loop works correctly at runtime.
+                record_store_any: Any = self._record_store
+                async for record in record_store_any.live_records(uid):
+                    rec: MemoryRecord = record
+                    if (
+                        not rec.provisional
+                        and rec.salience >= VAULT_SALIENCE_THRESHOLD
+                        and rec.valid_until is None
+                    ):
+                        await self._vault.promote(rec)
+
+            # ----------------------------------------------------------------
+            # Loop 2: Eviction pass (SECOND — after vault loop completes for uid)
+            # FORG-02: retire records below KEEP_THRESHOLD using 4-step sequence.
+            # FORG-03: no not-protected guard — decay_pass structural guarantee
+            # ensures protected records never reach this point.
+            # ----------------------------------------------------------------
+            async for record, score in decay_pass(self._record_store, uid, now=now):
+                if score >= KEEP_THRESHOLD:
+                    continue
+                # No not-protected guard — decay_pass structural guarantee (FORG-03)
+
+                # Step 1: retire from live index
+                await self._record_store.update(record.id, valid_until=now)
+                # Step 2: remove from KNN index (ghost-record prevention)
+                await self._vector_index.delete_vector(record.id)
+                # Step 3: archive to cold store (guard: t0 may be None in older tests)
+                if self._t0 is not None:
+                    await self._t0.archive(record)
+                    # Step 4: append audit entry (FORG-04)
+                    entry = {
+                        "record_id": record.id,
+                        "user_id": record.user_id,
+                        "keep_score": score,
+                        "evicted_at": now.isoformat(),
+                        "reason": (
+                            f"keep_score={score:.4f} < KEEP_THRESHOLD={KEEP_THRESHOLD}"
+                        ),
+                    }
+                    await self._t0.append_audit(entry)
 
     # -----------------------------------------------------------------------
     # Private helpers

@@ -138,6 +138,8 @@ class MemoryEngine:
 
         # ConsolidationPipeline — lazy import avoids circular/import-order issues;
         # core/consolidation.py is a peer core module loaded once here.
+        # vault and t0 are passed through so the pipeline can promote to T2 vault
+        # and archive evicted records to cold store (CONS-09/FORG-02 wiring).
         from mnema.core.consolidation import ConsolidationPipeline  # noqa: PLC0415
         self._consolidation_pipeline = ConsolidationPipeline(
             llm=self._llm,
@@ -145,6 +147,8 @@ class MemoryEngine:
             record_store=t1,
             vector_index=t1,
             staging_queue=self._staging,
+            vault=self._vault,
+            t0=self._t0,
         )
 
     # -------------------------------------------------------------------------
@@ -367,7 +371,9 @@ class MemoryEngine:
 
         return evicted
 
-    async def consolidate(self, *, force: bool = False) -> None:
+    async def consolidate(
+        self, *, force: bool = False, user_id: str | None = None
+    ) -> None:
         """Offline consolidation — drain staging queue, extract, resolve, decay.
 
         Drains the staging queue via ConsolidationPipeline.run(), which:
@@ -376,13 +382,21 @@ class MemoryEngine:
           3. Reconciles provisional records in place by t0_ref (CONS-06/07)
           4. Entity-resolves new records via cosine KNN (CONS-03)
           5. Applies contradiction/refine/distinct verdict with CONS-08 gate
-          6. Runs decay_pass over all live records per user (FORG-01)
+          6. Vault promotion pass — confirmed high-salience records → T2 vault (CONS-09)
+          7. Eviction pass — retire records below KEEP_THRESHOLD (FORG-02)
+
+        When user_id is set, processes only that user's staged turns and runs
+        vault/eviction scoped to that user. When None, processes all staged users
+        (global behavior).
 
         Args:
             force: Reserved for future scheduler-bypass semantics; currently
                 has no effect on the pipeline execution.
+            user_id: Optional user scope. When set, only processes staged turns
+                and vault/eviction for that user. When None, processes all staged
+                users (global behavior — D3-14 compatible with explicit MCP arg).
         """
-        await self._consolidation_pipeline.run()
+        await self._consolidation_pipeline.run(user_id=user_id)
         await self._scheduler.trigger_now()
 
     # -------------------------------------------------------------------------
