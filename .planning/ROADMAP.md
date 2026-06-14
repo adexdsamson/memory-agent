@@ -142,30 +142,30 @@ Plans:
 Plans:
 **Wave 0**
 
-- [ ] 04-00-PLAN.md — Cloud optional-dependency extra + conformance fixture registry (pyproject.toml + conftest)
+- [ ] 04-00-PLAN.md ï¿½ Cloud optional-dependency extra + conformance fixture registry (pyproject.toml + conftest)
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
-- [ ] 04-01-PLAN.md — Conformance contract test stubs + RED test stubs (all 10 conformance + standalone files)
+- [ ] 04-01-PLAN.md ï¿½ Conformance contract test stubs + RED test stubs (all 10 conformance + standalone files)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 04-02-PLAN.md — AnthropicLLM + QwenLLM cloud adapters (PROV-03/04)
-- [ ] 04-03-PLAN.md — VoyageEmbedder + QwenEmbedder adapters (PROV-05)
-- [ ] 04-04-PLAN.md — CronScheduler adapter (SCHED-03)
+- [ ] 04-02-PLAN.md ï¿½ AnthropicLLM + QwenLLM cloud adapters (PROV-03/04)
+- [ ] 04-03-PLAN.md ï¿½ VoyageEmbedder + QwenEmbedder adapters (PROV-05)
+- [ ] 04-04-PLAN.md ï¿½ CronScheduler adapter (SCHED-03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 04-05-PLAN.md — PostgresT1 adapter (STORE-02)
-- [ ] 04-06-PLAN.md — OSSS3Store adapter + moto_s3 fixture wiring (STORE-01)
+- [ ] 04-05-PLAN.md ï¿½ PostgresT1 adapter (STORE-02)
+- [ ] 04-06-PLAN.md ï¿½ OSSS3Store adapter + moto_s3 fixture wiring (STORE-01)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 04-07-PLAN.md — build_engine() config factory + reindex_all() migration (STORE-03/04/05, PROV-07)
+- [ ] 04-07-PLAN.md ï¿½ build_engine() config factory + reindex_all() migration (STORE-03/04/05, PROV-07)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 04-08-PLAN.md — Phase gate: full hermetic suite GREEN + pyright + ruff
+- [ ] 04-08-PLAN.md ï¿½ Phase gate: full hermetic suite GREEN + pyright + ruff
 
 ### Phase 5: Reference Demo & Evaluation
 
@@ -193,5 +193,5 @@ Phases execute in numeric order: 1 â†’ 2 â†’ 3 â†’ 4 â†’ 5
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
-| 4. Cloud Providers & Backends | 0/TBD | Not started | - |
+| 4. Cloud Providers & Backends | 0/9 | Planned    |  |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
