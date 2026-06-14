@@ -108,7 +108,7 @@ Plans:
 Plans:
 **Wave 0**
 
-- [ ] 03-00-PLAN.md — Phase 3 deps (fastmcp, tiktoken, hypothesis), VaultStore Protocol, RED test stubs (4 files)
+- [x] 03-00-PLAN.md — Phase 3 deps (fastmcp, tiktoken, hypothesis), VaultStore Protocol, RED test stubs (4 files)
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
@@ -164,6 +164,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
-| 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/5 | Not started | - |
+| 3. Forgetting, Salience Floor, Budget Packer & MCP | 1/5 | In Progress|  |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
