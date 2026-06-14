@@ -205,11 +205,14 @@ class MemoryEngine:
         user_id: str,
         agent_id: Optional[str] = None,
         k: int = 30,
+        budget: int | None = None,
     ) -> list[MemoryRecord]:
         """Retrieve relevant records for a query, scoped to user_id.
 
-        Phase 1: dense KNN + buffer union. Returns MemoryRecord objects with
-        access_count incremented for all T1 results.
+        Phase 3: dense KNN + buffer union + re-rank + optional budget packing.
+        Returns MemoryRecord objects re-ranked by relevance × salience × recency_decay.
+        If budget is set, applies the two-pass budget packer (RECALL-04/05) to fit
+        results under the token limit, always reserving slots for critical facts.
 
         The `user_id` parameter is non-defaulted — omitting it raises TypeError
         before any DB access (T-1-12 mitigation).
@@ -219,13 +222,15 @@ class MemoryEngine:
             user_id: Mandatory user scope boundary (D-02, T-1-12).
             agent_id: Optional narrowing filter inside the user boundary.
             k: Dense KNN candidate count.
+            budget: Optional token budget. If set, applies the two-pass budget
+                packer. If None, returns all re-ranked results (RECALL-03).
 
         Returns:
-            List of MemoryRecord objects, most relevant first (T1 records precede
-            buffer-synthesized records).
+            Re-ranked list of MemoryRecord objects. If budget is set, fitted
+            to the budget with critical facts (protected/FACT-type) always present.
         """
         return await self._recall_path.execute(
-            query, user_id=user_id, agent_id=agent_id, k=k
+            query, user_id=user_id, agent_id=agent_id, k=k, budget=budget
         )
 
     async def expand(self, record_id: str, *, user_id: str) -> Optional[Turn]:
@@ -465,18 +470,22 @@ class ScopedHandle:
         query: str,
         *,
         k: int = 30,
+        budget: int | None = None,
     ) -> list[MemoryRecord]:
         """Retrieve relevant records with the bound user_id.
 
         Args:
             query: Natural-language recall query.
             k: Dense KNN candidate count.
+            budget: Optional token budget. If set, applies the two-pass budget
+                packer (RECALL-04/05). If None, returns all re-ranked results.
 
         Returns:
-            List of MemoryRecord objects.
+            Re-ranked list of MemoryRecord objects. If budget is set, fitted
+            to the budget with critical facts always present (RECALL-05).
         """
         return await self._engine.recall(
-            query, user_id=self._user_id, agent_id=self._agent_id, k=k
+            query, user_id=self._user_id, agent_id=self._agent_id, k=k, budget=budget
         )
 
     async def expand(self, record_id: str) -> Optional[Turn]:

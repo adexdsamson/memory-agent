@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Protocol
 from mnema.core.decay import LAMBDA_DECAY
 
 if TYPE_CHECKING:
-    from mnema.core.schema import MemoryRecord, RecordType
+    from mnema.core.schema import MemoryRecord
 
 
 # ---------------------------------------------------------------------------

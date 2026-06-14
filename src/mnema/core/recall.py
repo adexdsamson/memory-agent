@@ -1,19 +1,20 @@
-"""MNEMA recall path — dense KNN + buffer union + access-count update.
+"""MNEMA recall path — dense KNN + buffer union + re-rank + budget packing.
 
-RecallPath orchestrates the hot online-recall path for Phase 1:
+RecallPath orchestrates the hot online-recall path:
   1. Embed the query text (one embedding call).
   2. Dense KNN search over live T1 records scoped to user_id.
   3. Union with in-memory buffer turns for the same user (freshness guarantee).
   4. Fetch MemoryRecord objects for dense hits; synthesize inline records for
      buffer-only turns (turns without a T1 record yet).
   5. Increment access_count for all returned T1 records (reinforcement signal).
-  6. Return combined list: T1 records first, buffer-synthesized records appended.
+  6. Re-rank combined results by relevance × salience × recency_decay (RECALL-03).
+  7. If budget is set, apply two-pass budget packer to fit under token limit (RECALL-04).
+  8. Return re-ranked (and optionally budget-packed) list.
 
-Phase 1 scope:
-  - No BM25 / FTS (Phase 2)
-  - No graph expansion / RRF fusion (Phase 2)
-  - No salience/recency re-ranking (Phase 2)
-  - No token-budget packing (Phase 2)
+Phase 3 additions (RECALL-03/04/05):
+  - Re-rank by composite score: similarity * salience * recency_decay
+  - Optional budget-aware packing via pack_records() two-pass algorithm
+  - similarity_scores built from dense_hits; buffer records default to 0.5
 
 D-02 isolation rule (LOCKED):
   user_id is the hard isolation boundary — mandatory predicate on every read.
@@ -30,7 +31,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 
 from mnema.core.buffer import RecentSessionBuffer
-from mnema.core.packer import re_rank
+from mnema.core.packer import TiktokenCounter, pack_records, re_rank
 from mnema.core.schema import MemoryRecord, RecordType, Turn
 
 if TYPE_CHECKING:
@@ -39,9 +40,9 @@ if TYPE_CHECKING:
     from mnema.ports.record_store import RecordStore
     from mnema.ports.vector_index import VectorIndex
 
-# re_rank is imported above and re-exported here for external callers
-# who import it from mnema.core.recall (per test convention)
-__all__ = ["RecallPath", "re_rank"]
+# re_rank, pack_records, TiktokenCounter are imported above and re-exported
+# for external callers who import them from mnema.core.recall (per test convention)
+__all__ = ["RecallPath", "re_rank", "pack_records", "TiktokenCounter"]
 
 
 def _utcnow() -> datetime:
@@ -100,6 +101,7 @@ class RecallPath:
         user_id: str,
         agent_id: Optional[str] = None,
         k: int = 30,
+        budget: int | None = None,
     ) -> list[MemoryRecord]:
         """Execute the recall path for a user query.
 
@@ -108,10 +110,15 @@ class RecallPath:
             user_id: Mandatory user scope — non-defaulted (D-02).
             agent_id: Optional narrowing filter inside the user boundary.
             k: Number of dense KNN candidates to retrieve from the vector index.
+            budget: Optional token budget. If set, applies the two-pass budget
+                packer (RECALL-04/05) to fit results under the token limit.
+                If None, returns all re-ranked results without budget constraint.
 
         Returns:
-            List of MemoryRecord objects, T1 records first (full provenance),
-            buffer-synthesized records appended (buffer-wins on content dedup).
+            Re-ranked list of MemoryRecord objects sorted by composite score
+            (relevance × salience × recency_decay). If budget is set, the list
+            is further filtered to fit within the token budget, with critical
+            facts (protected or FACT-type live records) always included first.
         """
         # Step 1: Embed the query text
         q_vec = (await self._embedder.embed([query]))[0]
@@ -162,5 +169,16 @@ class RecallPath:
             # Update the in-memory object too so callers see the incremented count
             object.__setattr__(record, "access_count", record.access_count + 1)
 
-        # Step 6: Return T1 records first, buffer-only records appended
-        return t1_records + buffer_records
+        # Step 6: Build similarity_scores dict from dense_hits for re-ranking.
+        # Buffer records are not in dense_hits and default to 0.5 (RESEARCH.md Pattern 3).
+        similarity_scores: dict[str, float] = {rid: score for rid, score in dense_hits}
+
+        # Step 7: Combine and re-rank by relevance × salience × recency_decay (RECALL-03)
+        combined: list[MemoryRecord] = t1_records + buffer_records
+        ranked: list[MemoryRecord] = re_rank(combined, similarity_scores, now)
+
+        # Step 8: Apply budget packer if budget is set (RECALL-04/05)
+        if budget is not None:
+            return pack_records(ranked, budget, TiktokenCounter())
+
+        return ranked
