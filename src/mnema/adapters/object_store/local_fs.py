@@ -119,9 +119,21 @@ class LocalFS:
     async def archive(self, record: MemoryRecord) -> str:
         """Archive a T1 record to cold storage; returns an archive ref.
 
-        Phase 3 eviction path — stub implementation sufficient for Phase 1.
+        Phase 3 eviction path — appends a full record JSON line to archived.jsonl.
         """
         path = self._base / "archived.jsonl"
         with path.open("a", encoding="utf-8") as fh:
             fh.write(record.model_dump_json() + "\n")
         return f"archived://{record.id}"
+
+    async def append_audit(self, entry: dict) -> None:  # type: ignore[type-arg]
+        """Append one eviction audit entry to the JSONL audit log (FORG-04).
+
+        Writes json.dumps(entry) + newline to {base_dir}/eviction_audit.jsonl.
+        Multiple calls append multiple lines — idempotent append, not overwrite.
+        """
+        import json  # noqa: PLC0415
+
+        path = self._base / "eviction_audit.jsonl"
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry) + "\n")

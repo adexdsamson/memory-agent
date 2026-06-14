@@ -5,13 +5,14 @@ Covers T0 raw episodic log (append-only turns) and T1 record archiving (eviction
 append() -> t0://session_id/offset  (used by WritePath, backs expand(id))
 get(ref) -> Turn                    (backs RECALL-06 expand)
 archive(record) -> ref              (Phase 3 eviction path)
+append_audit(entry) -> None         (FORG-04 eviction audit JSONL)
 
 No @runtime_checkable — static checking only (D-10).
 """
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
 from mnema.core.schema import MemoryRecord, Turn
 
@@ -29,4 +30,8 @@ class ObjectStorePort(Protocol):
 
     async def archive(self, record: MemoryRecord) -> str:
         """Archive a T1 record to cold storage; returns an archive ref."""
+        ...
+
+    async def append_audit(self, entry: dict[str, Any]) -> None:
+        """Append one eviction audit entry to the JSONL audit log (FORG-04)."""
         ...
