@@ -1006,7 +1006,9 @@ await self._db.commit()
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> All three resolved in planning: Q1 → `budget: int | None = None` on `engine.recall()` (Plan 03-02); Q2 → batch eviction lives in `ConsolidationPipeline.run()` with `engine.evict()` also available (Plan 03-01/03-03); Q3 → `engine.forget()` is explicit/forced and does NOT check keep_score (Plan 03-01).
 
 1. **`budget` parameter placement on `engine.recall()`**
    - What we know: `RecallPath.execute()` currently returns `list[MemoryRecord]` without budget awareness.
