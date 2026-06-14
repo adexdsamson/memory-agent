@@ -14,7 +14,7 @@ MNEMA is built inside-out. We write the record schema and the six ports first, s
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Schema, Ports & Local Core Foundation** - Scoped schema, six ports, local adapters, and `remember` + `recall(dense)` end-to-end on the local stack (completed 2026-06-10)
-- [ ] **Phase 2: Consolidation & Supersession** - Offline extraction, salience, entity resolution, active supersession, and provisional reconciliation
+- [x] **Phase 2: Consolidation & Supersession** - Offline extraction, salience, entity resolution, active supersession, and provisional reconciliation (completed 2026-06-14)
 - [ ] **Phase 3: Forgetting, Salience Floor, Budget Packer & MCP** - Provable protected-fact survival, recoverable eviction, two-pass budget recall, T2 vault, and the MCP surface
 - [ ] **Phase 4: Cloud Providers & Backends** - Real Qwen/Anthropic/Voyage adapters, pgvector/OSS/git backends, config factory, and conformance on ≥2 backends per axis
 - [ ] **Phase 5: Reference Demo & Evaluation** - Nutrition-coach demo and a naive-vs-MNEMA before/after baseline
@@ -87,7 +87,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 02-05-PLAN.md — All 10 tests GREEN + pyright phase gate (full suite: 33 tests passing)
+- [x] 02-05-PLAN.md — All 10 tests GREEN + pyright phase gate (full suite: 33 tests passing)
 
 ### Phase 3: Forgetting, Salience Floor, Budget Packer & MCP
 
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
-| 2. Consolidation & Supersession | 4/5 | In Progress|  |
+| 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
