@@ -101,3 +101,40 @@ async def engine_with_llm(tmp_path, stub_embedder, stub_llm):  # type: ignore[re
     yield eng
 
     await scheduler.shutdown()
+
+
+@pytest.fixture
+async def engine_with_vault(tmp_path, stub_embedder):  # type: ignore[return]
+    """Constructs a fully-local MemoryEngine with a LocalFSVault for CONS-09/TIER-03 tests.
+
+    Mirrors the ``engine`` fixture exactly but adds ``vault=vault_instance``.
+
+    Uses:
+      - SqliteT1 with in-memory SQLite (":memory:")
+      - LocalFS backed by tmp_path / "t0"
+      - LocalFSVault backed by tmp_path / "vault"
+      - InProcessScheduler (started, shutdown on teardown)
+      - StubEmbedder with dim=128
+    """
+    from mnema import MemoryEngine  # noqa: PLC0415
+    from mnema.adapters.object_store.local_fs import LocalFS  # noqa: PLC0415
+    from mnema.adapters.scheduler.in_process import InProcessScheduler  # noqa: PLC0415
+    from mnema.adapters.vault.local_fs_vault import LocalFSVault  # noqa: PLC0415
+    from mnema.adapters.vector_store.sqlite_t1 import SqliteT1  # noqa: PLC0415
+
+    vault = LocalFSVault(str(tmp_path / "vault"))
+    t1 = await SqliteT1.open(":memory:", dim=stub_embedder.dim)
+    t0 = LocalFS(str(tmp_path / "t0"))
+    scheduler = InProcessScheduler()
+    await scheduler.start()
+
+    eng = MemoryEngine(
+        embedder=stub_embedder,
+        t1=t1,
+        t0=t0,
+        scheduler=scheduler,
+        vault=vault,
+    )
+    yield eng
+
+    await scheduler.shutdown()
