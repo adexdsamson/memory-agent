@@ -159,6 +159,8 @@ class RecallPath:
             buffer_records.append(_turn_to_record(turn, user_id=user_id))
 
         # Step 5: Increment access_count for T1 records
+        # Capture now once — used for both last_accessed DB update and re_rank recency
+        # computation (WR-05). These must use the same timestamp for consistency.
         now = _utcnow()
         for record in t1_records:
             await self._record_store.update(
@@ -166,8 +168,12 @@ class RecallPath:
                 access_count=record.access_count + 1,
                 last_accessed=now,
             )
-            # Update the in-memory object too so callers see the incremented count
+            # CR-03: patch BOTH access_count AND last_accessed on the in-memory record.
+            # Without the last_accessed patch, re_rank() would compute recency_decay
+            # from created_at (None fallback), producing a stale/lower score for a
+            # record accessed for the first time in this call.
             object.__setattr__(record, "access_count", record.access_count + 1)
+            object.__setattr__(record, "last_accessed", now)
 
         # Step 6: Build similarity_scores dict from dense_hits for re-ranking.
         # Buffer records are not in dense_hits and default to 0.5 (RESEARCH.md Pattern 3).
