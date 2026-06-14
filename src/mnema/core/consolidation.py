@@ -182,12 +182,18 @@ class ConsolidationPipeline:
             session_id: str = turn.session_id
             await self._process_turn(turn.content, t0_ref, item_user_id, session_id)
 
-        # Collect unique user_ids that were actually processed
+        # Collect unique user_ids from items in the queue that were processed.
+        # WR-04: when user_id is provided, always include it even if the queue was
+        # empty (e.g. already drained by a prior run, or no items for this user).
+        # Vault promotion and eviction passes must run for the requested user
+        # regardless of queue contents.
         processed_user_ids: set[str] = {
             item.get("user_id", "")
             for item in items
             if item.get("user_id")
         }
+        if user_id is not None:
+            processed_user_ids.add(user_id)
 
         now = datetime.now(timezone.utc)
 
@@ -235,20 +241,28 @@ class ConsolidationPipeline:
                 await self._record_store.update(record.id, valid_until=now)
                 # Step 2: remove from KNN index (ghost-record prevention)
                 await self._vector_index.delete_vector(record.id)
-                # Step 3: archive to cold store (guard: t0 may be None in older tests)
-                if self._t0 is not None:
-                    await self._t0.archive(record)
-                    # Step 4: append audit entry (FORG-04)
-                    entry = {
-                        "record_id": record.id,
-                        "user_id": record.user_id,
-                        "keep_score": score,
-                        "evicted_at": now.isoformat(),
-                        "reason": (
-                            f"keep_score={score:.4f} < KEEP_THRESHOLD={KEEP_THRESHOLD}"
-                        ),
-                    }
-                    await self._t0.append_audit(entry)
+                # Step 3: archive to cold store + Step 4: audit (FORG-02/FORG-04).
+                # CR-04: t0 is REQUIRED for eviction. Silently skipping the archive/audit
+                # when t0 is None violates FORG-04 (every eviction must be auditable) and
+                # the "never hard-delete" guarantee. Raise RuntimeError to surface the
+                # misconfiguration rather than silently producing zero audit entries.
+                if self._t0 is None:
+                    raise RuntimeError(
+                        "ConsolidationPipeline: t0 is required for eviction (FORG-04). "
+                        "Pass t0= to ConsolidationPipeline or disable eviction."
+                    )
+                await self._t0.archive(record)
+                # Step 4: append audit entry (FORG-04)
+                entry = {
+                    "record_id": record.id,
+                    "user_id": record.user_id,
+                    "keep_score": score,
+                    "evicted_at": now.isoformat(),
+                    "reason": (
+                        f"keep_score={score:.4f} < KEEP_THRESHOLD={KEEP_THRESHOLD}"
+                    ),
+                }
+                await self._t0.append_audit(entry)
 
     # -----------------------------------------------------------------------
     # Private helpers
@@ -455,10 +469,17 @@ class ConsolidationPipeline:
                 "rel": "supersedes",
                 "target": existing.id,
             }
+            # IN-03: wrap RecordType() in try/except to match _process_turn() pattern.
+            # A malformed LLM response with an invalid record_type would otherwise raise
+            # an unhandled ValueError that aborts the entire consolidation run.
+            try:
+                _sup_record_type = RecordType(ext.get("record_type", "preference"))
+            except ValueError:
+                _sup_record_type = RecordType.PREFERENCE
             new_record = MemoryRecord(
                 user_id=user_id,
                 session_id=session_id,
-                record_type=RecordType(ext.get("record_type", "preference")),
+                record_type=_sup_record_type,
                 content=new_content,
                 summary=new_content[:60].strip(),
                 keywords=list(ext.get("keywords", [])),
@@ -499,10 +520,17 @@ class ConsolidationPipeline:
           - New records with no near match (entity resolution found nothing)
           - Records with "distinct" verdict (near match is a different entity)
         """
+        # IN-03: wrap RecordType() in try/except to match _process_turn() pattern.
+        # A malformed LLM response with an invalid record_type would otherwise raise
+        # an unhandled ValueError that aborts the entire consolidation run.
+        try:
+            _ins_record_type = RecordType(ext.get("record_type", "preference"))
+        except ValueError:
+            _ins_record_type = RecordType.PREFERENCE
         record = MemoryRecord(
             user_id=user_id,
             session_id=session_id,
-            record_type=RecordType(ext.get("record_type", "preference")),
+            record_type=_ins_record_type,
             content=content,
             summary=str(ext.get("summary", content[:60])).strip(),
             keywords=list(ext.get("keywords", [])),
