@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 
 from mnema.core.buffer import RecentSessionBuffer
+from mnema.core.packer import re_rank
 from mnema.core.schema import MemoryRecord, RecordType, Turn
 
 if TYPE_CHECKING:
@@ -37,6 +38,10 @@ if TYPE_CHECKING:
     from mnema.ports.object_store import ObjectStorePort
     from mnema.ports.record_store import RecordStore
     from mnema.ports.vector_index import VectorIndex
+
+# re_rank is imported above and re-exported here for external callers
+# who import it from mnema.core.recall (per test convention)
+__all__ = ["RecallPath", "re_rank"]
 
 
 def _utcnow() -> datetime:
