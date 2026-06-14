@@ -223,7 +223,9 @@ class ConsolidationPipeline:
                 # Upgrade in place: clear provisional flag and update extracted fields.
                 # T-02-11: protected flag is monotonic upward — consolidation can SET
                 # but NEVER CLEAR it. Recompute protected_final after safety gate.
-                protected_final = bool(ext.get("protected", False)) or existing_provisional.protected
+                protected_final = (
+                    bool(ext.get("protected", False)) or existing_provisional.protected
+                )
 
                 await self._record_store.update(
                     existing_provisional.id,

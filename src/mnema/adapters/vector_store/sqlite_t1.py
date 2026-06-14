@@ -427,7 +427,8 @@ class SqliteT1:
         WR-01 fix: filters valid_until IS NULL so superseded records are excluded.
         """
         cursor = await self._db.execute(
-            "SELECT * FROM t1_records WHERE user_id = ? AND valid_until IS NULL ORDER BY created_at DESC LIMIT 1",
+            "SELECT * FROM t1_records WHERE user_id = ? AND valid_until IS NULL "
+            "ORDER BY created_at DESC LIMIT 1",
             (user_id,),
         )
         row = await cursor.fetchone()
