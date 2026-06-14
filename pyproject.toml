@@ -9,6 +9,8 @@ dependencies = [
     "sqlite-vec>=0.1.9",
     "numpy>=2.4",
     "apscheduler>=3.11,<4",
+    "fastmcp>=3.4.2,<4",
+    "tiktoken>=0.13",
 ]
 
 [project.optional-dependencies]
@@ -17,6 +19,7 @@ dev = [
     "pytest-asyncio>=1.4",
     "ruff",
     "pyright",
+    "hypothesis>=6.155",
 ]
 
 [build-system]
