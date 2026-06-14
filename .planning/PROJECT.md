@@ -25,7 +25,14 @@ An agent **never forgets a protected fact (e.g. an allergy) and never acts on a 
 - Budget-naive recall (dense KNN + buffer union, content-deduped) and the `MemoryEngine`/`ScopedHandle` SDK surface
 - **Core-value foundation:** a safety claim (e.g. "I am allergic to peanuts") is stored `protected=True` from content alone, independent of any caller hint
 
-*Full index set (keyword/graph), consolidation, supersession, and forgetting remain Active — they are Phase 2+.*
+**Validated in Phase 2: consolidation-&-supersession (2026-06-14)** — the offline pipeline, fully local + deterministic, proven by a 33-test green harness + pyright strict:
+- Consolidation drains the staging queue, extracts typed records via the (stub) LLM, and pins safety/medical content `protected` + salience 1.0 by the content rule (never the LLM)
+- Active supersession: a contradicting claim atomically sets `valid_until` + `superseded_by` + a `supersedes` graph edge in a single transaction; a non-contradicting refinement merges in place
+- Provisional reconciliation by `t0_ref` identity (upgrade-in-place, no duplicates); re-running consolidation is idempotent
+- **Safety guarantee (load-bearing):** a protected/`fact` record is never auto-superseded on an LLM contradiction alone — it records a `contradiction_pending` edge and requires explicit `forget()`; consolidation never clears `protected`
+- A decay pass computes `keep_score` (recency decay + reinforcement + salience) as a pure sync fn over all live records (eviction deferred to Phase 3)
+
+*Full index set (keyword/graph), forgetting/eviction + salience floor + budget packer + MCP (Phase 3), cloud providers (Phase 4), and the demo (Phase 5) remain Active.*
 
 ### Active
 
@@ -120,4 +127,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-10 — Phase 1 (schema/ports/local-core foundation) complete; next: Phase 2 consolidation & supersession*
+*Last updated: 2026-06-14 — Phase 2 (consolidation & supersession) complete; next: Phase 3 forgetting, salience floor, budget packer & MCP*
