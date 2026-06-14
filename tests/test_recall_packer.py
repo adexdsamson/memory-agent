@@ -81,7 +81,6 @@ class TestPacker:
     def test_pack_under_budget(self) -> None:
         """RECALL-04: pack_records returns records whose summaries fit under budget."""
         from mnema.core.packer import ByteLengthCounter, pack_records  # noqa: PLC0415
-
         from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
 
         records = [
@@ -106,7 +105,6 @@ class TestPacker:
     def test_pack_respects_budget_limit(self) -> None:
         """RECALL-04: pack_records does not include records that would exceed budget."""
         from mnema.core.packer import ByteLengthCounter, pack_records  # noqa: PLC0415
-
         from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
 
         # One record whose summary is exactly 1 token over budget
@@ -141,7 +139,6 @@ def test_critical_fact_survives_large_off_topic_history() -> None:
     slot for the protected allergy fact in Pass 1 regardless of sort order.
     """
     from mnema.core.packer import ByteLengthCounter, pack_records  # noqa: PLC0415
-
     from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
 
     # One critical record: protected allergy fact (short summary)

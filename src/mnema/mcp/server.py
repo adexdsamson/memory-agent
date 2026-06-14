@@ -50,7 +50,7 @@ def create_mcp_server(engine: "MemoryEngine") -> FastMCP:
     mcp: FastMCP = FastMCP("mnema")
 
     @mcp.tool
-    async def remember(
+    async def remember(  # pyright: ignore[reportUnusedFunction]
         content: str,
         user_id: str,
         session_id: str,
@@ -78,7 +78,7 @@ def create_mcp_server(engine: "MemoryEngine") -> FastMCP:
         )
 
     @mcp.tool
-    async def recall(
+    async def recall(  # pyright: ignore[reportUnusedFunction]
         query: str,
         user_id: str,
         k: int = 10,
@@ -109,7 +109,9 @@ def create_mcp_server(engine: "MemoryEngine") -> FastMCP:
         ]
 
     @mcp.tool
-    async def forget(record_id: str, user_id: str, reason: str = "") -> None:
+    async def forget(  # pyright: ignore[reportUnusedFunction]
+        record_id: str, user_id: str, reason: str = ""
+    ) -> None:
         """Evict a record (mark for forgetting).
 
         The engine enforces:
@@ -125,7 +127,9 @@ def create_mcp_server(engine: "MemoryEngine") -> FastMCP:
         await engine.forget(record_id, user_id=user_id, reason=reason)
 
     @mcp.tool
-    async def consolidate(user_id: str) -> str:
+    async def consolidate(  # pyright: ignore[reportUnusedFunction]
+        user_id: str,
+    ) -> str:
         """Run offline consolidation for a user.
 
         Passes user_id to engine.consolidate(user_id=user_id) — this makes
@@ -142,7 +146,9 @@ def create_mcp_server(engine: "MemoryEngine") -> FastMCP:
         return "consolidated"
 
     @mcp.tool
-    async def expand(record_id: str, user_id: str) -> dict[str, Any] | None:
+    async def expand(  # pyright: ignore[reportUnusedFunction]
+        record_id: str, user_id: str
+    ) -> dict[str, Any] | None:
         """Return the verbatim T0 turn behind a record.
 
         Returns None if the record does not exist or does not belong to user_id
