@@ -32,7 +32,14 @@ An agent **never forgets a protected fact (e.g. an allergy) and never acts on a 
 - **Safety guarantee (load-bearing):** a protected/`fact` record is never auto-superseded on an LLM contradiction alone — it records a `contradiction_pending` edge and requires explicit `forget()`; consolidation never clears `protected`
 - A decay pass computes `keep_score` (recency decay + reinforcement + salience) as a pure sync fn over all live records (eviction deferred to Phase 3)
 
-*Full index set (keyword/graph), forgetting/eviction + salience floor + budget packer + MCP (Phase 3), cloud providers (Phase 4), and the demo (Phase 5) remain Active.*
+**Validated in Phase 3: forgetting, salience floor, budget packer & MCP (2026-06-14)** — proven by a 56-test green harness (incl. a Hypothesis property test + adversarial packer test) + pyright strict:
+- **Deliberate, recoverable forgetting:** eviction sets `valid_until` + deletes the vector row + archives to recoverable cold storage + appends a JSONL audit — **no hard-delete path exists** (eviction without a cold store now raises rather than silently dropping)
+- **Provable protected-fact guarantee (FORG-03):** a Hypothesis property test proves no input can evict a protected record (it's skipped before any score math, by construction)
+- **Budget-aware recall:** relevance×salience×recency re-rank + a two-pass packer that reserves protected/critical slots first — a protected fact is never pushed out of budget, even when budget < the critical set
+- **T2 canonical vault:** new `VaultStore` Protocol (6th adapter axis) + LocalFS atomic-write markdown user-model; confirmed high-salience records promoted during consolidation (vault BEFORE eviction)
+- **MCP surface (IFACE-02):** FastMCP thin wrapper exposing the 5 verbs over the same engine; `user_id` required + passed through on every tool (hard isolation real)
+
+*Full index set (keyword/graph + RRF hybrid retrieval), cloud providers/backends (Phase 4), and the reference demo + eval baseline (Phase 5) remain Active.*
 
 ### Active
 
@@ -127,4 +134,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-14 — Phase 2 (consolidation & supersession) complete; next: Phase 3 forgetting, salience floor, budget packer & MCP*
+*Last updated: 2026-06-14 — Phase 3 (forgetting, salience floor, budget packer & MCP) complete; next: Phase 4 cloud providers & backends*
