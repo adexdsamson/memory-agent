@@ -41,12 +41,12 @@ created: 2026-06-14
 | FORG-02 | below-threshold non-protected records evicted to cold storage | eviction pass moves record (valid_until set, vector deleted, cold record written) | `uv run --extra dev pytest tests/test_forgetting.py -q` | ⬜ pending |
 | FORG-03 | protected skipped before score math, survives EVERY pass | **Hypothesis property test** over arbitrary record sets: no protected record ever evicted | `uv run --extra dev pytest tests/test_forgetting.py -q` | ⬜ pending |
 | FORG-04 | eviction recoverable + auditable, never hard-delete | cold-store record readable; JSONL audit entry present; no DELETE-from-t1 path | `uv run --extra dev pytest -q` | ⬜ pending |
-| RECALL-03 | re-rank by relevance × salience × recency | re-rank order assertion on seeded records | `uv run --extra dev pytest tests/test_packer.py -q` | ⬜ pending |
-| RECALL-04 | pack summaries under caller token budget | packed token cost ≤ budget | `uv run --extra dev pytest tests/test_packer.py -q` | ⬜ pending |
-| RECALL-05 | two-pass reserves protected/active-constraint first | **adversarial test**: flood off-topic history, protected fact still in packed output | `uv run --extra dev pytest tests/test_packer.py -q` | ⬜ pending |
+| RECALL-03 | re-rank by relevance × salience × recency | re-rank order assertion on seeded records | `uv run --extra dev pytest tests/test_recall_packer.py -q` | ⬜ pending |
+| RECALL-04 | pack summaries under caller token budget | packed token cost ≤ budget | `uv run --extra dev pytest tests/test_recall_packer.py -q` | ⬜ pending |
+| RECALL-05 | two-pass reserves protected/active-constraint first | **adversarial test**: flood off-topic history, protected fact still in packed output | `uv run --extra dev pytest tests/test_recall_packer.py -q` | ⬜ pending |
 | CONS-09 | stable records promoted into T2 vault | confirmed high-salience record appears in vault after consolidate | `uv run --extra dev pytest tests/test_vault.py -q` | ⬜ pending |
 | TIER-03 | T2 vault: merged, deduped, human-readable, git-versioned | vault markdown file written + dedup assertion | `uv run --extra dev pytest tests/test_vault.py -q` | ⬜ pending |
-| IFACE-02 | MCP server exposes the 5 verbs as thin tools | FastMCP in-process client lists 5 tools + a remember→recall round-trip delegates to engine | `uv run --extra dev pytest tests/test_mcp.py -q` | ⬜ pending |
+| IFACE-02 | MCP server exposes the 5 verbs as thin tools | FastMCP in-process client lists 5 tools + a remember→recall round-trip delegates to engine | `uv run --extra dev pytest tests/test_mcp_server.py -q` | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -55,9 +55,9 @@ created: 2026-06-14
 ## Wave 0 Requirements
 
 - [ ] `tests/test_forgetting.py` — eviction + FORG-03 Hypothesis property test stubs
-- [ ] `tests/test_packer.py` — re-rank + budget + RECALL-05 adversarial test stubs
+- [ ] `tests/test_recall_packer.py` — re-rank + budget + RECALL-05 adversarial test stubs
 - [ ] `tests/test_vault.py` — promotion + vault format stubs
-- [ ] `tests/test_mcp.py` — FastMCP in-process client tool-surface stubs
+- [ ] `tests/test_mcp_server.py` — FastMCP in-process client tool-surface stubs
 - [ ] `pyproject.toml` — add `fastmcp>=3.4.2,<4`, `tiktoken>=0.13` (runtime), `hypothesis>=6.155` (dev)
 - [ ] `src/mnema/ports/vault.py` — VaultStore Protocol (Wave 0 dependency for vault tests)
 
