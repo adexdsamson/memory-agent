@@ -267,10 +267,18 @@ class SqliteT1:
         """
         now_str = _dt_to_str(datetime.now(timezone.utc))
         try:
-            await self._db.execute(
+            await self._db.execute("BEGIN")  # CR-02: explicit BEGIN required — aiosqlite is autocommit by default
+            cursor = await self._db.execute(
                 "UPDATE t1_records SET valid_until=?, superseded_by=? WHERE id=? AND user_id=?",
                 (now_str, new_record.id, old_id, new_record.user_id),
             )
+            # WR-04: assert rowcount==1; rollback + raise on cross-user or missing old_id
+            if cursor.rowcount != 1:
+                await self._db.rollback()
+                raise ValueError(
+                    f"supersede(): old_id={old_id!r} not found or user_id mismatch; "
+                    f"expected user_id={new_record.user_id!r}"
+                )
             await self._db.execute(_INSERT_SQL, _record_params(new_record))
             await self._db.execute(
                 "INSERT OR REPLACE INTO vec_t1(record_id, embedding) VALUES (?, ?)",
@@ -302,7 +310,10 @@ class SqliteT1:
         user_id predicate is mandatory — no cross-user lookup (D-02/D-03, T-02-07).
         """
         cursor = await self._db.execute(
-            "SELECT * FROM t1_records WHERE t0_ref = ? AND user_id = ? AND valid_until IS NULL",
+            # CR-03: AND provisional = 1 is the CONS-06/07 idempotency fence —
+            # a confirmed (provisional=0) record must NOT be re-reconciled on rerun.
+            "SELECT * FROM t1_records "
+            "WHERE t0_ref = ? AND user_id = ? AND valid_until IS NULL AND provisional = 1",
             (t0_ref, user_id),
         )
         row = await cursor.fetchone()
@@ -331,7 +342,9 @@ class SqliteT1:
                 serialized[k] = _dt_to_str(v)
             elif isinstance(v, (list, dict)):
                 serialized[k] = json.dumps(v)
-            elif k in ("protected", "provisional") and isinstance(v, bool):
+            elif isinstance(v, bool):
+                # WR-05: generalize to ALL bool columns, not just named ones —
+                # prevents any future bool field from being stored as True/False strings.
                 serialized[k] = int(v)
             else:
                 serialized[k] = v
