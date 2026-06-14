@@ -20,7 +20,9 @@ local-only MVP path. Mark for asyncio.to_thread wrap in Phase 4 if needed.
 
 from __future__ import annotations
 
+import os
 import re
+import tempfile
 from pathlib import Path
 
 from mnema.core.schema import MemoryRecord
@@ -87,13 +89,16 @@ class LocalFSVault:
         # Compute the display summary — prefer record.summary, fall back to content[:80]
         summary = (record.summary or record.content[:80]).strip()
 
-        # D3-12: dedup by summary string — skip if already present in file
-        if summary in existing:
+        # D3-12: dedup by exact bullet-line match (CR-02: not a raw substring search,
+        # which would false-positive when a short summary appears inside a longer
+        # existing bullet — e.g. "blood pressure" inside "has low blood pressure").
+        bullet_line = f"- {summary}\n"
+        if bullet_line in existing:
             return
 
         # Build the section header from the record_type: e.g. RecordType.FACT → "## Facts"
         section_header = f"## {record.record_type.value.capitalize()}s"
-        bullet = f"- {summary}\n"
+        bullet = bullet_line
 
         if section_header + "\n" in existing:
             # Insert bullet immediately after the section header line
@@ -107,7 +112,22 @@ class LocalFSVault:
             updated = existing + f"\n{section_header}\n{bullet}"
 
         # lstrip() removes any leading whitespace from an initially-empty file
-        path.write_text(updated.lstrip(), encoding="utf-8")
+        final = updated.lstrip() if not existing else updated
+
+        # CR-01: atomic write — write to a sibling temp file, then rename over the
+        # target. os.replace() is atomic on POSIX and on Windows (unlike rename()).
+        # A crash mid-write cannot leave the vault file truncated to zero bytes.
+        tmp_fd, tmp_path_str = tempfile.mkstemp(dir=self._base, suffix=".tmp")
+        try:
+            with os.fdopen(tmp_fd, "w", encoding="utf-8") as fh:
+                fh.write(final)
+            os.replace(tmp_path_str, path)
+        except Exception:
+            try:
+                os.unlink(tmp_path_str)
+            except OSError:
+                pass
+            raise
 
     async def get_user_model(self, user_id: str) -> str:
         """Return the current T2 user model markdown as a string.
