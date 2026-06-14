@@ -166,15 +166,16 @@ async def test_vault_promotion_before_eviction(engine_with_vault, tmp_path) -> N
     embedding = [0.0] * engine._embedder.dim  # type: ignore[attr-defined]
     await engine._t1.upsert_with_vector(record, embedding)  # type: ignore[attr-defined]
 
-    # Run consolidation with no staged items — vault+eviction pass still runs on
-    # the live records for any user_id if processed_user_ids is non-empty.
-    # We stage a dummy turn for u1 so processed_user_ids includes "u1".
+    # Run consolidation scoped to u1. With WR-04 fix, the vault+eviction pass
+    # runs for u1 even if the dummy staged turn is the only queue item (or even
+    # if the queue is empty). The explicit user_id also makes the test independent
+    # of the staging item format (WR-06).
     await engine.remember(
         "dummy turn to trigger consolidation for u1",
         user_id="u1",
         session_id="s1",
     )
-    await engine.consolidate()
+    await engine.consolidate(user_id="u1")
 
     # (a) Vault must contain the record's summary (promoted before eviction)
     vault_content = await vault.get_user_model("u1")
@@ -285,17 +286,55 @@ async def test_promotion_on_consolidation(engine_with_vault) -> None:
     embedding = [0.0] * engine._embedder.dim  # type: ignore[attr-defined]
     await engine._t1.upsert_with_vector(record, embedding)  # type: ignore[attr-defined]
 
-    # Stage a dummy turn so consolidation runs the vault pass for u1
-    await engine.remember(
-        "trigger consolidation for u1",
-        user_id="u1",
-        session_id="s1",
-    )
-    await engine.consolidate()
+    # With WR-04 fix: explicit user_id ensures vault pass runs even when queue is empty.
+    # No dummy remember() needed — consolidate(user_id="u1") always runs the pass for u1.
+    await engine.consolidate(user_id="u1")
 
     # The high-salience confirmed record must appear in the vault
     vault_content = await vault.get_user_model("u1")
     assert "allergy: tree nuts" in vault_content, (
         "CONS-09: confirmed high-salience record must appear in vault after consolidate(); "
+        f"got vault content: {vault_content!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# WR-04 test — vault+eviction pass runs even when staging queue is empty
+# ---------------------------------------------------------------------------
+
+
+async def test_vault_pass_runs_with_empty_queue(engine_with_vault) -> None:
+    """WR-04: consolidate(user_id=X) runs vault/eviction pass for X even when
+    the staging queue is completely empty (no staged turns for any user).
+
+    This proves the WR-04 fix: processed_user_ids always includes the requested
+    user_id, regardless of queue contents.
+    """
+    from mnema.adapters.vault.local_fs_vault import LocalFSVault  # noqa: PLC0415
+    from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
+
+    engine = engine_with_vault
+    vault: LocalFSVault = engine._vault  # type: ignore[attr-defined]
+
+    # Seed a high-salience confirmed record directly into T1 — no remember() call,
+    # so the staging queue remains completely empty.
+    record = MemoryRecord(
+        user_id="u1",
+        session_id="s1",
+        record_type=RecordType.FACT,
+        content="wr04 test: allergy to walnuts",
+        summary="wr04 test: allergy to walnuts",
+        salience=0.95,
+        provisional=False,
+    )
+    embedding = [0.0] * engine._embedder.dim  # type: ignore[attr-defined]
+    await engine._t1.upsert_with_vector(record, embedding)  # type: ignore[attr-defined]
+
+    # Consolidate with an EMPTY queue — vault pass must still run for u1
+    await engine.consolidate(user_id="u1")
+
+    vault_content = await vault.get_user_model("u1")
+    assert "wr04 test: allergy to walnuts" in vault_content, (
+        "WR-04 VIOLATION: vault pass did not run for u1 when staging queue was empty; "
         f"got vault content: {vault_content!r}"
     )

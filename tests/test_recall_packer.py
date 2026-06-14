@@ -172,3 +172,66 @@ def test_critical_fact_survives_large_off_topic_history() -> None:
         "RECALL-05 VIOLATION: protected allergy fact was pushed out of budget "
         "by off-topic filler history"
     )
+
+
+def test_protected_fact_retained_when_budget_smaller_than_critical_set() -> None:
+    """WR-03: protected records are ALWAYS included even when budget is smaller than
+    the total token cost of all critical records.
+
+    Scenario: two protected allergy facts whose combined token cost exceeds the budget.
+    The packer MUST retain BOTH protected facts, even at the cost of exceeding the
+    soft budget, rather than silently dropping one.
+    This ensures the "never forget a protected fact" safety guarantee holds under
+    adversarial budget conditions.
+    """
+    import warnings  # noqa: PLC0415
+
+    from mnema.core.packer import ByteLengthCounter, pack_records  # noqa: PLC0415
+    from mnema.core.schema import MemoryRecord, RecordType  # noqa: PLC0415
+
+    counter = ByteLengthCounter()
+
+    allergy_peanuts = MemoryRecord(
+        user_id="u1",
+        session_id="s1",
+        record_type=RecordType.FACT,
+        content="allergy: peanuts",
+        summary="allergy: peanuts",
+        protected=True,
+        salience=1.0,
+    )
+    allergy_shellfish = MemoryRecord(
+        user_id="u1",
+        session_id="s1",
+        record_type=RecordType.FACT,
+        content="allergy: shellfish",
+        summary="allergy: shellfish",
+        protected=True,
+        salience=1.0,
+    )
+
+    # Verify that the combined cost exceeds our tight budget
+    cost_peanuts = counter.count(allergy_peanuts.summary or allergy_peanuts.content[:80])
+    cost_shellfish = counter.count(allergy_shellfish.summary or allergy_shellfish.content[:80])
+    # Use a budget smaller than either individual record to force the protected-override path
+    tight_budget = max(cost_peanuts, cost_shellfish) - 1
+    if tight_budget <= 0:
+        tight_budget = 1  # ensure budget is at least 1 for the test to be meaningful
+
+    ranked = [allergy_peanuts, allergy_shellfish]
+
+    # Suppress the expected "budget too small" warning for clean test output
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        packed = pack_records(ranked, budget=tight_budget, counter=counter)
+
+    packed_ids = {r.id for r in packed}
+
+    assert allergy_peanuts.id in packed_ids, (
+        "WR-03 VIOLATION: protected allergy:peanuts was dropped from packed output "
+        f"when budget={tight_budget} was smaller than the critical set"
+    )
+    assert allergy_shellfish.id in packed_ids, (
+        "WR-03 VIOLATION: protected allergy:shellfish was dropped from packed output "
+        f"when budget={tight_budget} was smaller than the critical set"
+    )
