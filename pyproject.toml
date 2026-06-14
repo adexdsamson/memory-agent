@@ -14,12 +14,22 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+cloud = [
+    "anthropic>=0.109.1,<0.110",
+    "dashscope>=1.25.21,<2",
+    "voyageai>=0.4.0,<0.5",
+    "psycopg[binary,pool]>=3.3,<4",
+    "pgvector>=0.4.2,<0.5",
+    "boto3>=1.43,<2",
+]
 dev = [
     "pytest>=8",
     "pytest-asyncio>=1.4",
     "ruff",
     "pyright",
     "hypothesis>=6.155",
+    "testcontainers[postgres]>=4.14,<5",
+    "moto[s3]>=5,<6",
 ]
 
 [build-system]
