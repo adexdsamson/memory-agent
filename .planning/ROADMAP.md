@@ -103,7 +103,25 @@ Plans:
   4. Stable records are promoted into the T2 canonical vault (merged, deduped, human-readable user model).
   5. An MCP server exposes `remember`/`recall`/`forget`/`consolidate`/`expand` as a thin wrapper over the same SDK core.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 0**
+
+- [ ] 03-00-PLAN.md — Phase 3 deps (fastmcp, tiktoken, hypothesis), VaultStore Protocol, RED test stubs (4 files)
+
+**Wave 1** *(blocked on Wave 0 completion)*
+
+- [ ] 03-01-PLAN.md — engine.forget() + engine.evict() + LocalFS.append_audit() + KEEP_THRESHOLD (FORG-02/03/04)
+- [ ] 03-02-PLAN.md — packer.py (re_rank + TokenCounter + pack_records) + recall.py budget wiring (RECALL-03/04/05)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 03-03-PLAN.md — LocalFSVault + consolidation vault+eviction hooks + engine vault wiring (CONS-09, TIER-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 03-04-PLAN.md — MCP server + in-process tests GREEN + Phase 3 phase gate (IFACE-02)
 
 ### Phase 4: Cloud Providers & Backends
 
@@ -146,6 +164,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
-| 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/TBD | Not started | - |
+| 3. Forgetting, Salience Floor, Budget Packer & MCP | 0/5 | Not started | - |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
