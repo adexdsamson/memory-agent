@@ -267,7 +267,8 @@ class SqliteT1:
         """
         now_str = _dt_to_str(datetime.now(timezone.utc))
         try:
-            await self._db.execute("BEGIN")  # CR-02: explicit BEGIN required — aiosqlite is autocommit by default
+            # CR-02: explicit BEGIN — aiosqlite is autocommit by default without it.
+            await self._db.execute("BEGIN")
             cursor = await self._db.execute(
                 "UPDATE t1_records SET valid_until=?, superseded_by=? WHERE id=? AND user_id=?",
                 (now_str, new_record.id, old_id, new_record.user_id),
