@@ -131,3 +131,14 @@ None - no external service configuration required.
 ---
 *Phase: 03-forgetting-salience-floor-budget-packer-mcp*
 *Completed: 2026-06-14*
+
+## Self-Check: PASSED
+
+All files found and all commits verified:
+- `src/mnema/core/engine.py` — FOUND
+- `src/mnema/ports/object_store.py` — FOUND
+- `src/mnema/adapters/object_store/local_fs.py` — FOUND
+- `tests/test_forgetting.py` — FOUND
+- `.planning/phases/03-forgetting-salience-floor-budget-packer-mcp/03-01-SUMMARY.md` — FOUND
+- Commit `d28ab3e` — FOUND
+- Commit `5c2f903` — FOUND
