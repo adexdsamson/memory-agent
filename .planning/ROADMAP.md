@@ -112,7 +112,7 @@ Plans:
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
-- [ ] 03-01-PLAN.md — engine.forget() + engine.evict() + LocalFS.append_audit() + KEEP_THRESHOLD (FORG-02/03/04)
+- [x] 03-01-PLAN.md — engine.forget() + engine.evict() + LocalFS.append_audit() + KEEP_THRESHOLD (FORG-02/03/04)
 - [ ] 03-02-PLAN.md — packer.py (re_rank + TokenCounter + pack_records) + recall.py budget wiring (RECALL-03/04/05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -164,6 +164,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
-| 3. Forgetting, Salience Floor, Budget Packer & MCP | 1/5 | In Progress|  |
+| 3. Forgetting, Salience Floor, Budget Packer & MCP | 2/5 | In Progress|  |
 | 4. Cloud Providers & Backends | 0/TBD | Not started | - |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
