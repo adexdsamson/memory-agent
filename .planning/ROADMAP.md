@@ -142,11 +142,11 @@ Plans:
 Plans:
 **Wave 0**
 
-- [ ] 04-00-PLAN.md � Cloud optional-dependency extra + conformance fixture registry (pyproject.toml + conftest)
+- [x] 04-00-PLAN.md � Cloud optional-dependency extra + conformance fixture registry (pyproject.toml + conftest)
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
-- [ ] 04-01-PLAN.md � Conformance contract test stubs + RED test stubs (all 10 conformance + standalone files)
+- [x] 04-01-PLAN.md � Conformance contract test stubs + RED test stubs (all 10 conformance + standalone files)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -193,5 +193,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
-| 4. Cloud Providers & Backends | 0/9 | Planned    |  |
+| 4. Cloud Providers & Backends | 2/9 | In Progress|  |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
