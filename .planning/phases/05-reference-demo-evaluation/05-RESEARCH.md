@@ -717,7 +717,9 @@ async def test_budget_packing(engine):
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> Q1 (WAL checkpoint) → RESOLVED: Wave 0 (Plan 05-00 Task 1) adds an explicit `PRAGMA wal_checkpoint(FULL)` before `aiosqlite.close()` in `SqliteT1.close()`, so cross-session persistence does not rely on implicit WAL-flush behavior. Q2 (SqliteT1 needs a public `close()`) → RESOLVED: added in Wave 0 (Plan 05-00 Task 1).
 
 1. **Does `aiosqlite.close()` reliably checkpoint the WAL in an asyncio context?**
    - What we know: CPython `sqlite3.close()` checkpoints the WAL by default. `aiosqlite` delegates all calls to a background thread.
