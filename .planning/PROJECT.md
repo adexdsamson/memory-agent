@@ -39,7 +39,14 @@ An agent **never forgets a protected fact (e.g. an allergy) and never acts on a 
 - **T2 canonical vault:** new `VaultStore` Protocol (6th adapter axis) + LocalFS atomic-write markdown user-model; confirmed high-salience records promoted during consolidation (vault BEFORE eviction)
 - **MCP surface (IFACE-02):** FastMCP thin wrapper exposing the 5 verbs over the same engine; `user_id` required + passed through on every tool (hard isolation real)
 
-*Full index set (keyword/graph + RRF hybrid retrieval), cloud providers/backends (Phase 4), and the reference demo + eval baseline (Phase 5) remain Active.*
+**Validated in Phase 4: cloud providers & backends (2026-06-15)** — proven by a 118-test green hermetic harness + pyright-strict(--extra cloud) + a parametrized conformance suite:
+- Real cloud adapters behind the existing ports (ZERO Protocol changes): **Qwen/DashScope** LLM + embedder, **Anthropic Claude** LLM, **Voyage** embedder, **Alibaba OSS** (boto3 S3-compat) object store, **Postgres+pgvector** (psycopg3 async, HNSW, partial index) vector store, **CronScheduler**
+- **Shared conformance suite** asserts the safety invariants (scope isolation, protected-survival, no-hard-delete) on EVERY backend; ≥2 backends/axis (local always-on + cloud/Postgres gated by env/Docker) — the CI gate stays hermetic
+- **Config-keyed factory** `build_engine(LocalConfig | QwenAlibabaConfig)` wires all six axes (API keys as `SecretStr`); the documented default is Qwen DashScope (LLM + embeddings) + Alibaba; the fully-local config runs the same suite end-to-end
+- **PROV-07 reindex/migration:** switching embedder/dim triggers an explicit `migrate_embedder()` (store-wide reindex, protected records preserved) — never a silent flip; startup dim assertion is the backstop
+- Independent LLM/embedding axes confirmed (Claude+Voyage is a first-class combo); cloud deps isolated behind an optional `cloud` extra so the laptop path stays lean
+
+*Hybrid retrieval (BM25 + graph + RRF, HYBRID-01/02/03) and extra providers (OpenAI/Ollama) remain a later additive phase. The reference demo + before/after eval baseline (Phase 5) is the last milestone phase.*
 
 ### Active
 
@@ -134,4 +141,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-14 — Phase 3 (forgetting, salience floor, budget packer & MCP) complete; next: Phase 4 cloud providers & backends*
+*Last updated: 2026-06-15 — Phase 4 (cloud providers & backends) complete; next: Phase 5 reference demo & evaluation*
