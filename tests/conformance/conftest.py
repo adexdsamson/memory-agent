@@ -23,7 +23,6 @@ import os
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Skip helpers
 # ---------------------------------------------------------------------------
@@ -67,8 +66,43 @@ async def t1_backend(request: pytest.FixtureRequest, tmp_path):  # type: ignore[
         yield await SqliteT1.open(":memory:", dim=128)
 
     elif request.param == "postgres":
-        # PostgresT1 adapter ships in plan 05. Skip until then.
-        pytest.skip("PostgresT1 not yet implemented — will ship in plan 04-05")
+        import os  # noqa: PLC0415
+        import shutil  # noqa: PLC0415
+
+        container = None
+        try:
+            if os.environ.get("MNEMA_TEST_PG_DSN"):
+                dsn = os.environ["MNEMA_TEST_PG_DSN"]
+            elif shutil.which("docker"):
+                from testcontainers.postgres import PostgresContainer  # noqa: PLC0415
+
+                # Official image ships pgvector >= 0.8.2 (CVE-2026-3172 safe).
+                container = PostgresContainer("pgvector/pgvector:pg16")
+                container.start()
+                # Build the DSN from the container's actual credentials — never hardcode.
+                host = container.get_container_host_ip()
+                port = container.get_exposed_port(5432)
+                dsn = (
+                    f"postgresql://{container.username}:{container.password}"
+                    f"@{host}:{port}/{container.dbname}"
+                )
+            else:
+                pytest.skip("No Postgres DSN or Docker available (set MNEMA_TEST_PG_DSN)")
+
+            from mnema.adapters.vector_store.postgres_t1 import PostgresT1  # noqa: PLC0415
+
+            t1 = await PostgresT1.open(dsn, dim=128)
+            try:
+                yield t1
+            finally:
+                await t1.close()
+        except pytest.skip.Exception:
+            raise
+        except Exception as exc:  # pragma: no cover - environment dependent
+            pytest.skip(f"Postgres setup failed: {exc}")
+        finally:
+            if container is not None:
+                container.stop()
 
 
 # ---------------------------------------------------------------------------
@@ -195,6 +229,7 @@ async def object_store_backend(request: pytest.FixtureRequest, tmp_path):  # typ
         try:
             import boto3 as _boto3  # noqa: PLC0415
             from moto import mock_aws  # noqa: PLC0415
+
             from mnema.adapters.object_store.oss_s3 import OSSS3Store  # noqa: PLC0415
         except ImportError as exc:
             pytest.skip(f"moto[s3] or OSSS3Store not available: {exc}")

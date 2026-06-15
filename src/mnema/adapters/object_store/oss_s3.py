@@ -95,7 +95,10 @@ class OSSS3Store:
             region_name: AWS/OSS region (default "us-east-1").
         """
         self._bucket = bucket
-        self._client = boto3.client(
+        # boto3 ships no type stubs; annotate as Any so pyright-strict does not flag
+        # every dynamic client method (reportUnknownMemberType). Runtime behavior is
+        # unaffected. (botocore-stubs/boto3-stubs would be the heavier typed alternative.)
+        self._client: Any = boto3.client(  # type: ignore[reportUnknownMemberType]
             "s3",
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
