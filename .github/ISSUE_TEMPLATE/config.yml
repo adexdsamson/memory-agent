@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & ideas (Discussions)
+    url: https://github.com/adexdsamson/memory-agent/discussions
+    about: Open-ended questions, design discussion, and "is this a bug?" before filing.
+  - name: Security / safety-guarantee report (private)
+    url: mailto:ai@mainlandtech.com
+    about: Privately report a vulnerability or a credential-handling issue.

@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a capability or enhancement (for a new backend adapter, use the adapter template).
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For larger changes, please open this issue **before** a big PR so we can agree on
+        direction (see CONTRIBUTING.md → Ground rules).
+
+        Proposing a **new backend** (vector store, LLM, embedder, object store…)? Use the
+        **"New adapter proposal"** template instead — it has the Protocol/conformance checklist.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What can't you do today, or what's painful? Who benefits?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should MNEMA do? Sketch the API/config surface if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches, and why this one. (MNEMA's docs lean on documented trade-offs — same spirit here.)
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Portability check
+      description: MNEMA must run identically on a laptop and in the cloud.
+      options:
+        - label: This keeps the LLM and embedding axes independently configurable.
+        - label: This preserves the "runs hermetically on a laptop, no required services" path.
