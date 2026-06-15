@@ -185,7 +185,7 @@ Plans:
 Plans:
 **Wave 0**
 
-- [ ] 05-00-PLAN.md — SqliteT1.close() gap fix + demo/eval package markers + RED test stubs (DEMO-01..05, EVAL-02)
+- [x] 05-00-PLAN.md — SqliteT1.close() gap fix + demo/eval package markers + RED test stubs (DEMO-01..05, EVAL-02)
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
@@ -210,4 +210,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
 | 4. Cloud Providers & Backends | 8/9 | In Progress|  |
-| 5. Reference Demo & Evaluation | 0/4 | Not started | - |
+| 5. Reference Demo & Evaluation | 1/4 | In Progress|  |
