@@ -186,34 +186,58 @@ async def object_store_backend(request: pytest.FixtureRequest, tmp_path):  # typ
         return LocalFS(str(tmp_path / "t0"))
 
     elif request.param == "moto_s3":
-        # moto provides a hermetic in-process S3 mock (no network, no credentials)
+        # moto provides a hermetic in-process S3 mock (no network, no credentials).
+        # moto[s3] is a dev dependency and pulls in boto3 transitively, so this branch
+        # always runs in the hermetic test suite (satisfies STORE-01 >=2 backends).
         try:
-            import boto3  # noqa: PLC0415
+            import boto3 as _boto3  # noqa: PLC0415
             from moto import mock_aws  # noqa: PLC0415
-        except ImportError:
-            pytest.skip("moto[s3] not installed — install dev extra: uv sync --extra dev")
+            from mnema.adapters.object_store.oss_s3 import OSSS3Store  # noqa: PLC0415
+        except ImportError as exc:
+            pytest.skip(f"moto[s3] or OSSS3Store not available: {exc}")
 
-        # OSSS3Store adapter ships in plan 04-06. Stub until then.
-        pytest.skip("OSSS3Store not yet implemented — will ship in plan 04-06")
-
-        # When 04-06 ships, replace the skip above with:
-        #   with mock_aws():
-        #       client = boto3.client(
-        #           "s3",
-        #           region_name="us-east-1",
-        #           aws_access_key_id="testing",
-        #           aws_secret_access_key="testing",
-        #       )
-        #       client.create_bucket(Bucket="mnema-test")
-        #       from mnema.adapters.object_store.oss_s3 import OSSS3Store
-        #       yield OSSS3Store(
-        #           bucket="mnema-test",
-        #           aws_access_key_id="testing",
-        #           aws_secret_access_key="testing",
-        #       )
+        mock = mock_aws()
+        mock.start()
+        try:
+            s3 = _boto3.client(
+                "s3",
+                region_name="us-east-1",
+                aws_access_key_id="testing",
+                aws_secret_access_key="testing",
+            )
+            s3.create_bucket(Bucket="mnema-test")
+            store = OSSS3Store(
+                "mnema-test",
+                aws_access_key_id="testing",
+                aws_secret_access_key="testing",
+                endpoint_url=None,
+                region_name="us-east-1",
+            )
+            yield store
+        finally:
+            mock.stop()
 
     elif request.param == "oss":
-        pytest.skip("OSSS3Store not yet implemented — will ship in plan 04-06 with MNEMA_TEST_OSS=1")
+        # Real OSS backend -- gated by MNEMA_TEST_OSS env var (already handled by
+        # _skip_if_no_env("MNEMA_TEST_OSS") mark on the param).
+        import os  # noqa: PLC0415
+
+        from mnema.adapters.object_store.oss_s3 import OSSS3Store  # noqa: PLC0415
+
+        bucket = os.environ.get("MNEMA_OSS_BUCKET", "mnema-test")
+        endpoint_url = os.environ.get("MNEMA_OSS_ENDPOINT_URL")
+        region_name = os.environ.get("MNEMA_OSS_REGION", "us-east-1")
+        aws_access_key_id = os.environ.get("ALIBABA_ACCESS_KEY_ID", "")
+        aws_secret_access_key = os.environ.get("ALIBABA_ACCESS_KEY_SECRET", "")
+        if not aws_access_key_id or not aws_secret_access_key:
+            pytest.skip("Set ALIBABA_ACCESS_KEY_ID and ALIBABA_ACCESS_KEY_SECRET for OSS backend")
+        yield OSSS3Store(
+            bucket,
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            endpoint_url=endpoint_url,
+            region_name=region_name,
+        )
 
 
 # ---------------------------------------------------------------------------
