@@ -120,10 +120,23 @@ class OSSS3Store:
         _validate_session_id(session_id)
 
         def _call() -> str:
-            resp = self._client.list_objects_v2(
-                Bucket=self._bucket, Prefix=f"{session_id}/"
-            )
-            offset: int = resp.get("KeyCount", 0)
+            # CR-02: paginate list_objects_v2 to count ALL keys under the prefix.
+            # A single list_objects_v2 call returns at most 1000 keys; sessions with
+            # >1000 turns would silently reuse offsets and overwrite existing objects.
+            offset: int = 0
+            continuation_token: str | None = None
+            while True:
+                kwargs: dict[str, Any] = {
+                    "Bucket": self._bucket,
+                    "Prefix": f"{session_id}/",
+                }
+                if continuation_token:
+                    kwargs["ContinuationToken"] = continuation_token
+                resp = self._client.list_objects_v2(**kwargs)
+                offset += resp.get("KeyCount", 0)
+                if not resp.get("IsTruncated"):
+                    break
+                continuation_token = resp.get("NextContinuationToken")
             key = f"{session_id}/{offset}.json"
             self._client.put_object(
                 Bucket=self._bucket,
