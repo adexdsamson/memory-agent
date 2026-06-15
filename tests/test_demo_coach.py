@@ -87,7 +87,6 @@ async def test_coach_entrypoint(tmp_path) -> None:  # type: ignore[no-untyped-de
     await eng._scheduler.shutdown()
 
 
-@pytest.mark.xfail(strict=False, reason="RED stub — implement in Wave 1")
 async def test_cross_session_recall(persistent_engine_factory) -> None:  # type: ignore[no-untyped-def]
     """DEMO-02: Constraint from session 1 is recalled in session 2.
 
@@ -101,6 +100,7 @@ async def test_cross_session_recall(persistent_engine_factory) -> None:  # type:
     eng1 = await make_engine()
     scope1 = eng1.scope(user_id="demo_user")
     await scope1.remember("I am allergic to peanuts", session_id="s1")
+    # staging queue is in-memory; consolidate() flushes to SQLite before engine close
     await eng1.consolidate()
     await close_engine(eng1)
 
