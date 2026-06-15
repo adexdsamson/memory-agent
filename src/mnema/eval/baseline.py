@@ -306,7 +306,7 @@ async def run_eval(data_dir: Path) -> EvalResults:
     finally:
         # T-05-03-04: always close engine resources
         try:
-            await engine._t1._db.close()  # type: ignore[attr-defined]
+            await engine.t1.close()  # type: ignore[attr-defined]
         except Exception:
             pass
         try:
@@ -348,7 +348,7 @@ async def run_eval(data_dir: Path) -> EvalResults:
 # ---------------------------------------------------------------------------
 
 
-async def write_eval_report(
+def write_eval_report(
     results: EvalResults,
     output_path: Path,
     *,
