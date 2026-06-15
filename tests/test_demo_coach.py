@@ -63,7 +63,6 @@ async def persistent_engine_factory(tmp_path):  # type: ignore[return]
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=False, reason="RED stub — implement in Wave 1")
 async def test_coach_entrypoint(tmp_path) -> None:  # type: ignore[no-untyped-def]
     """DEMO-01: Coach module imports and suggest_meal returns a string.
 
