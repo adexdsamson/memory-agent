@@ -1,0 +1,74 @@
+name: Bug report
+description: Something behaves incorrectly — a wrong recall, a failing guarantee, a crash.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. If this is a **safety-guarantee** failure — a protected fact
+        was forgotten, or a superseded fact resurfaced — say so up front; those are the
+        highest-priority bugs in MNEMA.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you observe, and what did you expect instead?
+      placeholder: |
+        Recalled a superseded "vegetarian" preference after consolidation should have retired it.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Smallest sequence of verbs / config that reproduces it. A snippet against `build_engine(LocalConfig())` is ideal since it's hermetic.
+      render: python
+    validations:
+      required: true
+  - type: dropdown
+    id: guarantee
+    attributes:
+      label: Does this break a core guarantee?
+      options:
+        - "No"
+        - "Yes — a protected fact was forgotten / evicted"
+        - "Yes — a superseded fact resurfaced in recall"
+        - "Yes — critical fact pushed out of the token budget"
+        - "Not sure"
+    validations:
+      required: true
+  - type: dropdown
+    id: axis
+    attributes:
+      label: Which adapter axis is involved?
+      multiple: true
+      options:
+        - LLM
+        - Embedding
+        - Object store (T0)
+        - Vector store (T1)
+        - Vault (T2)
+        - Scheduler
+        - Core engine (not adapter-specific)
+        - Don't know
+  - type: input
+    id: config
+    attributes:
+      label: Configuration
+      description: Which config / backends? e.g. LocalConfig (SQLite + LocalFS + stubs), QwenAlibabaConfig, Claude + Voyage.
+      placeholder: LocalConfig()
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: MNEMA version & Python
+      placeholder: "mnema 0.1.0, Python 3.12.4, Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output / traceback
+      description: Paste the failing gate output or traceback. Scrub any credentials.
+      render: shell

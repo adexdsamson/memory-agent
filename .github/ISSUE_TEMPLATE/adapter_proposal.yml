@@ -1,0 +1,56 @@
+name: New adapter proposal
+description: Propose a new backend behind an existing Protocol (vector store, LLM, embedder, object store, vault, scheduler).
+title: "feat(adapter): "
+labels: ["enhancement", "adapter"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Swappable backends are the whole point of MNEMA. This template tracks the contract
+        a new adapter must satisfy — see CONTRIBUTING.md → "Adding a new adapter".
+  - type: dropdown
+    id: axis
+    attributes:
+      label: Which axis?
+      options:
+        - LLM
+        - Embedding
+        - Object store (T0)
+        - Vector store (T1)
+        - Vault (T2)
+        - Scheduler
+    validations:
+      required: true
+  - type: input
+    id: backend
+    attributes:
+      label: Backend
+      description: What are you adapting? Link its docs/SDK.
+      placeholder: "Qdrant (vector store) — https://qdrant.tech/documentation/"
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Why this backend?
+      description: When would a user pick it over the existing default? Compare with specifics where you can (scale, cost, ops, dims supported).
+    validations:
+      required: true
+  - type: input
+    id: dim
+    attributes:
+      label: (Embedders only) Output dimension(s)
+      description: "`EmbeddingProvider.dim` is part of the contract — the vector column is fixed at table-create time."
+      placeholder: "1024 (Matryoshka: 256/512/1024/2048)"
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Adapter contract (acknowledge the plan)
+      options:
+        - label: Implements the existing `Protocol` by structure — no inheritance.
+          required: true
+        - label: Heavy/cloud deps go behind the `cloud` extra, imported lazily inside the adapter.
+          required: true
+        - label: Will be registered in the parametrized conformance suite and must pass the shared safety contract (scope isolation, protected-record survival, non-destructive eviction).
+          required: true
+        - label: Wired into `build_engine()` in `src/mnema/config.py` if it should be config-selectable.
