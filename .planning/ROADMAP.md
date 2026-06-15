@@ -193,7 +193,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 05-02-PLAN.md — DEMO-04..05 GREEN: decay+protected+recovery, budget packing+expand
+- [x] 05-02-PLAN.md — DEMO-04..05 GREEN: decay+protected+recovery, budget packing+expand
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -210,4 +210,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
 | 4. Cloud Providers & Backends | 8/9 | In Progress|  |
-| 5. Reference Demo & Evaluation | 2/4 | In Progress|  |
+| 5. Reference Demo & Evaluation | 3/4 | In Progress|  |
