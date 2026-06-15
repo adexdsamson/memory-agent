@@ -25,7 +25,9 @@ class AnthropicLLM:
     """
 
     def __init__(self, api_key: str, default_model: str = "claude-haiku-4-5") -> None:
-        from anthropic import Anthropic  # noqa: PLC0415 — lazy: cloud extra required only when instantiated
+        from anthropic import (
+            Anthropic,  # noqa: PLC0415 — lazy: cloud extra required only when instantiated
+        )
 
         self._client = Anthropic(api_key=api_key)
         self._default_model = default_model

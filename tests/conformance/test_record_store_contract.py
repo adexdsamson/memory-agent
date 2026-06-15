@@ -212,5 +212,5 @@ class TestRecordStoreContract:
             "record was hard-deleted; eviction must only set valid_until"
         )
         assert retrieved.valid_until is not None, (
-            f"FORG-04: evicted record must have valid_until set, got None"
+            "FORG-04: evicted record must have valid_until set, got None"
         )

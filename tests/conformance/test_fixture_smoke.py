@@ -8,8 +8,6 @@ Verifies that:
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestT1BackendFixture:
     """Verify t1_backend fixture yields a valid RecordStore+VectorIndex."""

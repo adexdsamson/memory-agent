@@ -15,7 +15,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Import availability guards
 # ---------------------------------------------------------------------------
@@ -127,6 +126,7 @@ class TestQwenEmbedderHermetic:
         mock_ds.TextEmbedding = MagicMock()
         with patch.dict(sys.modules, {"dashscope": mock_ds}):
             from importlib import reload
+
             import mnema.adapters.embedding.qwen as qwen_mod
 
             reload(qwen_mod)
@@ -139,6 +139,7 @@ class TestQwenEmbedderHermetic:
         mock_ds.TextEmbedding = MagicMock()
         with patch.dict(sys.modules, {"dashscope": mock_ds}):
             from importlib import reload
+
             import mnema.adapters.embedding.qwen as qwen_mod
 
             reload(qwen_mod)
@@ -159,6 +160,7 @@ class TestQwenEmbedderHermetic:
 
         with patch.dict(sys.modules, {"dashscope": mock_ds}):
             from importlib import reload
+
             import mnema.adapters.embedding.qwen as qwen_mod
 
             reload(qwen_mod)
