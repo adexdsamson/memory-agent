@@ -142,30 +142,30 @@ Plans:
 Plans:
 **Wave 0**
 
-- [x] 04-00-PLAN.md � Cloud optional-dependency extra + conformance fixture registry (pyproject.toml + conftest)
+- [x] 04-00-PLAN.md — Cloud optional-dependency extra + conformance fixture registry (pyproject.toml + conftest)
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
-- [x] 04-01-PLAN.md � Conformance contract test stubs + RED test stubs (all 10 conformance + standalone files)
+- [x] 04-01-PLAN.md — Conformance contract test stubs + RED test stubs (all 10 conformance + standalone files)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [x] 04-02-PLAN.md � AnthropicLLM + QwenLLM cloud adapters (PROV-03/04)
-- [x] 04-03-PLAN.md � VoyageEmbedder + QwenEmbedder adapters (PROV-05)
-- [x] 04-04-PLAN.md � CronScheduler adapter (SCHED-03)
+- [x] 04-02-PLAN.md — AnthropicLLM + QwenLLM cloud adapters (PROV-03/04)
+- [x] 04-03-PLAN.md — VoyageEmbedder + QwenEmbedder adapters (PROV-05)
+- [x] 04-04-PLAN.md — CronScheduler adapter (SCHED-03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [x] 04-05-PLAN.md � PostgresT1 adapter (STORE-02)
-- [ ] 04-06-PLAN.md � OSSS3Store adapter + moto_s3 fixture wiring (STORE-01)
+- [x] 04-05-PLAN.md — PostgresT1 adapter (STORE-02)
+- [ ] 04-06-PLAN.md — OSSS3Store adapter + moto_s3 fixture wiring (STORE-01)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [x] 04-07-PLAN.md � build_engine() config factory + reindex_all() migration (STORE-03/04/05, PROV-07)
+- [x] 04-07-PLAN.md — build_engine() config factory + reindex_all() migration (STORE-03/04/05, PROV-07)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [x] 04-08-PLAN.md � Phase gate: full hermetic suite GREEN + pyright + ruff
+- [x] 04-08-PLAN.md — Phase gate: full hermetic suite GREEN + pyright + ruff
 
 ### Phase 5: Reference Demo & Evaluation
 
@@ -180,8 +180,24 @@ Plans:
   3. A seeded backdated transient is evicted then recovered while a pinned allergy survives the decay pass untouched (decay + protected fact), and a large history is packed under budget with one verbatim `expand` on demand.
   4. A before/after baseline compares naive "stuff the whole transcript" vs MNEMA on the same harness, reporting our own numbers with methodology.
 
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 4 plans
+
+Plans:
+**Wave 0**
+
+- [ ] 05-00-PLAN.md — SqliteT1.close() gap fix + demo/eval package markers + RED test stubs (DEMO-01..05, EVAL-02)
+
+**Wave 1** *(blocked on Wave 0 completion)*
+
+- [ ] 05-01-PLAN.md — DEMO-01..03 GREEN: coach entrypoint, cross-session recall, supersession surfaces fields
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 05-02-PLAN.md — DEMO-04..05 GREEN: decay+protected+recovery, budget packing+expand
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 05-03-PLAN.md — EVAL-02 GREEN: baseline.py + test_eval_baseline + EVAL.md report
 
 ## Progress
 
@@ -194,4 +210,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
 | 4. Cloud Providers & Backends | 8/9 | In Progress|  |
-| 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
+| 5. Reference Demo & Evaluation | 0/4 | Not started | - |
