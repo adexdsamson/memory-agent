@@ -102,9 +102,18 @@ async def run_session(data_dir: Path, session_id: str) -> None:
             print(suggestion)
             print()
     finally:
-        await engine.consolidate()
-        await engine.t1.close()
-        await engine._scheduler.shutdown()  # type: ignore[union-attr]
+        try:
+            await engine.consolidate()
+        except Exception as exc:
+            print(f"Warning: consolidation failed on exit: {exc}")
+        try:
+            await engine.t1.close()
+        except Exception:
+            pass
+        try:
+            await engine._scheduler.shutdown()  # type: ignore[union-attr]
+        except Exception:
+            pass
         print("Session saved. Goodbye.")
 
 
