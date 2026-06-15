@@ -394,6 +394,10 @@ class PostgresT1:
             params["agent_id"] = agent_id
         cursor = await self._conn.execute(sql, params)
         rows = await cursor.fetchall()
+        # WR-02: commit to close the implicit read transaction opened by the SET
+        # statements above. Without this, the connection remains "idle in transaction",
+        # blocking VACUUM and consuming a max_connections slot unnecessarily.
+        await self._conn.commit()
         return [(str(row[0]), float(row[1])) for row in rows]
 
     async def delete_vector(self, record_id: str) -> None:
