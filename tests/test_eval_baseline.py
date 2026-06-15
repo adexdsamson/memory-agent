@@ -13,6 +13,7 @@ Requirement covered:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
@@ -57,10 +58,11 @@ async def test_eval_baseline_comparison(tmp_path: Path) -> None:
     # more than once (both the original remember() and the superseding remember()
     # are stored as T0 turns). MNEMA's live-record filter returns only the current
     # record, so the content appears exactly once.
-    assert results["probes_passed_naive"] <= 2, (
-        f"Naive baseline must fail the supersession avoidance probe "
-        f"(content duplicated in full transcript), but got "
-        f"{results['probes_passed_naive']} probes passed. "
+    # Naive must pass exactly 2 probes (protection + cross-session) and fail 1
+    # (supersession avoidance). == 2 catches regressions where naive is fully broken.
+    assert results["probes_passed_naive"] == 2, (
+        f"Naive baseline must pass 2 probes (protection + cross-session) and fail 1 "
+        f"(supersession avoidance). Got {results['probes_passed_naive']} probes passed. "
         f"Per-probe breakdown: {results['probe_results']}"
     )
 
@@ -73,7 +75,7 @@ async def test_eval_baseline_comparison(tmp_path: Path) -> None:
 
     # --- Report: write to tmp path and validate content ---
     eval_tmp_path = tmp_path / "EVAL.md"
-    await write_eval_report(results, eval_tmp_path)
+    write_eval_report(results, eval_tmp_path)
     assert eval_tmp_path.exists(), "EVAL.md was not created at the tmp path"
     content = eval_tmp_path.read_text(encoding="utf-8")
     assert "MNEMA" in content, "EVAL.md must contain 'MNEMA'"
@@ -81,7 +83,8 @@ async def test_eval_baseline_comparison(tmp_path: Path) -> None:
     assert "Methodology" in content, "EVAL.md must contain 'Methodology' section"
     assert "PASS" in content or "FAIL" in content, "EVAL.md must contain probe results"
 
-    # --- Deliverable: write EVAL.md to the project root ---
+    # --- Deliverable: write EVAL.md to the project root only when explicitly requested ---
     project_root_eval = Path(__file__).parent.parent / "EVAL.md"
-    await write_eval_report(results, project_root_eval)
-    assert project_root_eval.exists(), "EVAL.md was not written to project root"
+    if os.environ.get("MNEMA_WRITE_EVAL_REPORT"):
+        write_eval_report(results, project_root_eval)
+        assert project_root_eval.exists(), "EVAL.md was not written to project root"

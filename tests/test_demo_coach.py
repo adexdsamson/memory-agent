@@ -83,6 +83,10 @@ async def test_coach_entrypoint(tmp_path) -> None:  # type: ignore[no-untyped-de
     result = await suggest_meal(scope, "what can I eat for lunch")
     assert isinstance(result, str)
     assert len(result) > 0
+    # Assert the engine actually recalled the seeded allergy (not trivially vacuous):
+    assert "peanut" in result.lower() or "allergic" in result.lower(), (
+        f"suggest_meal should surface the seeded peanut allergy in the suggestion, got: {result!r}"
+    )
     await eng.t1.close()
     await eng._scheduler.shutdown()
 
