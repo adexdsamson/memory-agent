@@ -46,7 +46,16 @@ An agent **never forgets a protected fact (e.g. an allergy) and never acts on a 
 - **PROV-07 reindex/migration:** switching embedder/dim triggers an explicit `migrate_embedder()` (store-wide reindex, protected records preserved) — never a silent flip; startup dim assertion is the backstop
 - Independent LLM/embedding axes confirmed (Claude+Voyage is a first-class combo); cloud deps isolated behind an optional `cloud` extra so the laptop path stays lean
 
-*Hybrid retrieval (BM25 + graph + RRF, HYBRID-01/02/03) and extra providers (OpenAI/Ollama) remain a later additive phase. The reference demo + before/after eval baseline (Phase 5) is the last milestone phase.*
+**Validated in Phase 5: reference demo & evaluation (2026-06-15)** — proven by a 124-test green hermetic harness + a committed `EVAL.md`:
+- A **CLI nutrition coach** runs end-to-end on the engine through the SDK alone (`build_engine(LocalConfig)` + the five verbs)
+- The four core behaviors are each a deterministic test: **cross-session recall** (constraint stated in session 1, honored in session 2 over a persistent store), **supersession** (a diet change retires the old record, surfacing `valid_until`/`superseded_by`), **decay + protected** (a backdated transient is evicted then recovered via `expand()` while a pinned allergy survives untouched), **budget packing** (a large history packed under a token budget + one verbatim `expand`)
+- **EVAL-02 before/after baseline (our own honest numbers):** MNEMA passes **3/3** containment probes; naive transcript-stuffing passes **2/3** — it *fails superseded-fact avoidance* (it includes both the old and new diet), the exact "never act on a superseded fact" failure MNEMA prevents — at **~38% fewer context tokens**
+
+---
+
+## 🎉 Milestone v1.0 complete — all 5 phases shipped & verified.
+
+*The core thesis is proven end-to-end: store cheaply (T0/buffer/provisional T1), curate offline (consolidation + supersession), forget deliberately (recoverable eviction with a provable protected-fact guarantee), recall within a token budget (two-pass packer) — on any provider (six swappable adapter axes, conformance-gated). Deferred to a future milestone: hybrid retrieval (BM25 + graph + RRF, HYBRID-01/02/03) and extra providers (OpenAI/Ollama, PROV-08).*
 
 ### Active
 
@@ -141,4 +150,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-15 — Phase 4 (cloud providers & backends) complete; next: Phase 5 reference demo & evaluation*
+*Last updated: 2026-06-15 — Phase 5 (reference demo & evaluation) complete; MILESTONE v1.0 COMPLETE (all 5 phases)*
