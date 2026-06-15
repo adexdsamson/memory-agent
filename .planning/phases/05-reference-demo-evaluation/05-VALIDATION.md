@@ -1,9 +1,9 @@
 ---
 phase: 5
 slug: reference-demo-evaluation
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-15
 ---
 
@@ -38,12 +38,12 @@ created: 2026-06-15
 
 | Requirement | Success Criterion | Test Focus | Automated Command | Status |
 |-------------|-------------------|------------|-------------------|--------|
-| DEMO-01 | coach runs on the engine (chat + meal loop) | coach module imports + a scripted turn produces a constraint-respecting suggestion | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ⬜ pending |
-| DEMO-02 | cross-session recall | engine#1 states constraint over a persistent store → engine#2 (reopened) recall honors it | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ⬜ pending |
-| DEMO-03 | supersession surfaces valid_until/superseded_by | diet change → old record has valid_until set + superseded_by pointer | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ⬜ pending |
-| DEMO-04 | decay + protected | backdated transient evicted then recovered via expand; pinned allergy survives | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ⬜ pending |
-| DEMO-05 | budget packing + expand | large history packed under token budget; one verbatim expand() | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ⬜ pending |
-| EVAL-02 | before/after baseline | naive full-transcript vs MNEMA recall(budget): containment metrics + token counts; EVAL.md written | `uv run --extra dev pytest tests/test_eval_baseline.py -q` | ⬜ pending |
+| DEMO-01 | coach runs on the engine (chat + meal loop) | coach module imports + a scripted turn produces a constraint-respecting suggestion | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ✅ green |
+| DEMO-02 | cross-session recall | engine#1 states constraint over a persistent store → engine#2 (reopened) recall honors it | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ✅ green |
+| DEMO-03 | supersession surfaces valid_until/superseded_by | diet change → old record has valid_until set + superseded_by pointer | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ✅ green |
+| DEMO-04 | decay + protected | backdated transient evicted then recovered via expand; pinned allergy survives | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ✅ green |
+| DEMO-05 | budget packing + expand | large history packed under token budget; one verbatim expand() | `uv run --extra dev pytest tests/test_demo_coach.py -q` | ✅ green |
+| EVAL-02 | before/after baseline | naive full-transcript vs MNEMA recall(budget): containment metrics + token counts; EVAL.md written | `uv run --extra dev pytest tests/test_eval_baseline.py -q` | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
