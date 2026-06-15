@@ -156,7 +156,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 04-05-PLAN.md � PostgresT1 adapter (STORE-02)
+- [x] 04-05-PLAN.md � PostgresT1 adapter (STORE-02)
 - [ ] 04-06-PLAN.md � OSSS3Store adapter + moto_s3 fixture wiring (STORE-01)
 
 **Wave 4** *(blocked on Wave 3 completion)*
@@ -193,5 +193,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
-| 4. Cloud Providers & Backends | 5/9 | In Progress|  |
+| 4. Cloud Providers & Backends | 6/9 | In Progress|  |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
