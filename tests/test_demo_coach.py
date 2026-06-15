@@ -205,15 +205,21 @@ async def test_decay_protected_and_recovery(persistent_engine_factory) -> None: 
 
     # Allergy survives eviction (protected=True)
     allergy_results = await scope.recall("allergy peanuts", budget=500)
-    assert any("peanut" in r.content for r in allergy_results), "Protected allergy must survive eviction"
+    assert any("peanut" in r.content for r in allergy_results), (
+        "Protected allergy must survive eviction"
+    )
 
     # Kale is gone from live records
     live_after = await eng.t1.get_live_records("demo_user")
-    assert not any("kale" in r.content for r in live_after), "Kale transient must be evicted from live records"
+    assert not any("kale" in r.content for r in live_after), (
+        "Kale transient must be evicted from live records"
+    )
 
     # Cold-store recovery via expand() reads the original T0 JSONL turn
     turn = await scope.expand(kale_id)
-    assert turn is not None, "expand() must return the T0 turn for an evicted record with valid t0_ref"
+    assert turn is not None, (
+        "expand() must return the T0 turn for an evicted record with valid t0_ref"
+    )
     assert "kale" in turn.content, "Verbatim T0 turn must contain original content"
 
     await close_engine(eng)
@@ -250,15 +256,23 @@ async def test_budget_packing_and_expand(persistent_engine_factory) -> None:  # 
     counter = TiktokenCounter()
     protected_results = [r for r in results if r.protected]
     non_protected_results = [r for r in results if not r.protected]
-    non_protected_tokens = sum(counter.count(r.summary or r.content[:80]) for r in non_protected_results)
+    non_protected_tokens = sum(
+        counter.count(r.summary or r.content[:80]) for r in non_protected_results
+    )
 
-    # DEMO-05 proof: two-pass packer (RECALL-05) reserves protected slots first — allergy guaranteed
-    # in results. Non-protected records packed within remaining budget.
-    assert non_protected_tokens <= BUDGET, f"Non-protected tokens {non_protected_tokens} must fit within budget {BUDGET}"
+    # DEMO-05 proof: two-pass packer (RECALL-05) reserves protected slots first — allergy
+    # guaranteed in results. Non-protected records packed within remaining budget.
+    assert non_protected_tokens <= BUDGET, (
+        f"Non-protected tokens {non_protected_tokens} must fit within budget {BUDGET}"
+    )
 
     # Protected allergy must appear in results regardless of budget
-    assert any(r.protected for r in results), "Protected allergy must always appear in budgeted recall (two-pass packer guarantee)"
-    assert any("peanut" in r.content for r in protected_results), "Protected result must be the peanut allergy"
+    assert any(r.protected for r in results), (
+        "Protected allergy must always appear in budgeted recall (two-pass packer guarantee)"
+    )
+    assert any("peanut" in r.content for r in protected_results), (
+        "Protected result must be the peanut allergy"
+    )
 
     # Verbatim expand on protected allergy (seeded via remember() — has valid t0_ref)
     turn = await scope.expand(protected_results[0].id)
