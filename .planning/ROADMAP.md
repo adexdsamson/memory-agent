@@ -165,7 +165,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 04-08-PLAN.md � Phase gate: full hermetic suite GREEN + pyright + ruff
+- [x] 04-08-PLAN.md � Phase gate: full hermetic suite GREEN + pyright + ruff
 
 ### Phase 5: Reference Demo & Evaluation
 
@@ -193,5 +193,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
-| 4. Cloud Providers & Backends | 7/9 | In Progress|  |
+| 4. Cloud Providers & Backends | 8/9 | In Progress|  |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
