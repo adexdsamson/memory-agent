@@ -162,7 +162,6 @@ async def test_supersession_surfaces_fields(persistent_engine_factory) -> None: 
     await close_engine(eng)
 
 
-@pytest.mark.xfail(strict=False, reason="RED stub — implement in Wave 1/2")
 async def test_decay_protected_and_recovery(persistent_engine_factory) -> None:  # type: ignore[no-untyped-def]
     """DEMO-04: Backdated transient evicted; pinned allergy survives; expand() recovers turn.
 
@@ -199,22 +198,23 @@ async def test_decay_protected_and_recovery(persistent_engine_factory) -> None: 
     past = datetime.now(timezone.utc) - timedelta(days=60)
     await eng.t1.update(kale_id, created_at=past, last_accessed=past, salience=0.2)
 
-    # Evict — kale should be evicted (keep_score ≈ 0.08 < 0.3)
+    # DEMO-04 proof: keep_score(60d, sal=0.2, acc=0) = 0.08 < KEEP_THRESHOLD=0.3 → evicted.
+    # Protected allergy skipped before score math (decay_pass structural guarantee, FORG-03).
     evicted_count = await eng.evict(user_id="demo_user")
-    assert evicted_count >= 1
+    assert evicted_count >= 1, "At least one record must be evicted"
 
     # Allergy survives eviction (protected=True)
     allergy_results = await scope.recall("allergy peanuts", budget=500)
-    assert any("peanut" in r.content for r in allergy_results)
+    assert any("peanut" in r.content for r in allergy_results), "Protected allergy must survive eviction"
 
     # Kale is gone from live records
     live_after = await eng.t1.get_live_records("demo_user")
-    assert not any("kale" in r.content for r in live_after)
+    assert not any("kale" in r.content for r in live_after), "Kale transient must be evicted from live records"
 
     # Cold-store recovery via expand() reads the original T0 JSONL turn
     turn = await scope.expand(kale_id)
-    assert turn is not None
-    assert "kale" in turn.content
+    assert turn is not None, "expand() must return the T0 turn for an evicted record with valid t0_ref"
+    assert "kale" in turn.content, "Verbatim T0 turn must contain original content"
 
     await close_engine(eng)
 
