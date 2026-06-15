@@ -2,6 +2,8 @@
 name = "mnema"
 version = "0.1.0"
 description = "Portable provider-agnostic memory engine for AI agents"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.12",
