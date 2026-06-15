@@ -59,34 +59,14 @@ An agent **never forgets a protected fact (e.g. an allergy) and never acts on a 
 
 ### Active
 
-<!-- Current scope. Building toward these. Hypotheses until shipped. -->
+<!-- v1.0 shipped all founding hypotheses (see the per-phase Validated entries above). The items below are the v1.1 candidate scope, deferred from v1.0. -->
 
-**Memory architecture (the engine)**
-- [ ] T0 raw episodic log — verbatim, append-only, cold storage; pulled only on explicit `expand`
-- [ ] T1 working memory — typed records (fact/preference/event/procedure) with the v2 record schema, vector + keyword + graph-edge indexes
-- [ ] T2 canonical knowledge — merged, deduped, human-readable, version-controlled user model
-- [ ] Recent-session buffer — in-context recent turns, the read-after-write freshness fix (within-session)
-- [ ] Fast online write — append T0 + buffer push + optional single-embedding provisional T1 write for durable-looking claims
-- [ ] Slow offline consolidation — batch extract typed records, judge salience, entity-resolve, merge/supersede/confirm, clear provisional flag
-- [ ] Multi-signal forgetting — keep-score (recency decay + reinforcement + salience) with a **salience floor** that provably protects high-importance facts; eviction is to cold storage and recoverable, never hard-deleted
-- [ ] Active supersession — contradicting claims set `valid_until` + `superseded_by` so contradictions never accumulate
-- [ ] Budget-aware recall — hybrid retrieval (dense + BM25 + graph expand, RRF-fused), union with buffer, salience/recency re-rank, pack summaries under a token budget, `expand(id)` for verbatim on demand
+**Deferred to v1.1 (candidates — run `/gsd-new-milestone` to scope):**
+- [ ] **Hybrid retrieval** — sparse/BM25 keyword recall + 1-hop graph expand over the adjacency table + RRF fusion (ranks-only, k=60) of dense + sparse + graph (HYBRID-01/02/03). v1.0 shipped dense + buffer only.
+- [ ] **Additional providers** — OpenAI and Ollama adapters behind the existing LLM/embedding axes (PROV-08).
+- [ ] **Tech-debt cleanup** — the tracked per-phase code-review deferred items (`.planning/todos/pending/phase-0{1..5}-code-review-deferred.md`): mostly INFO/cosmetic + a couple of latent-concurrency hardening items (e.g. LocalFS append TOCTOU, `all_live_records` on the RecordStore Protocol), and flipping the Nyquist `nyquist_compliant` flag on phases 02/03/04.
 
-**Provider & backend portability (the modification)**
-- [ ] LLM provider abstraction — chat/extraction/reasoning behind one interface; ships **Qwen (DashScope)** and **Anthropic (Claude)** adapters
-- [ ] Embedding provider abstraction — **independent axis** from the LLM (Claude has no first-party embedder, so e.g. Claude reasoning + Qwen/local embeddings is a valid config)
-- [ ] Storage adapters — object store (Alibaba OSS ↔ S3 ↔ local FS), vector DB (Postgres+pgvector ↔ alternatives), canonical vault (git-versioned markdown)
-- [ ] Compute/scheduler adapters — consolidation trigger behind an interface (Alibaba Function Compute cron ↔ generic cron ↔ in-process)
-- [ ] Configuration system — select providers/backends per axis; documented **default = Qwen + Alibaba** (preserves the hackathon proof path)
-
-**Interfaces**
-- [ ] MCP server — `remember`, `recall`, `forget`, `consolidate`, plus `expand(id)`
-- [ ] Library/SDK — typed, importable API exposing the same memory operations without a server
-
-**Evaluation & demo**
-- [ ] Custom memory test harness — 5 tests growing to 20+, mapped 1:1 to storage/recall, freshness, forgetting/supersession, protected-fact, and budget capabilities
-- [ ] Before/after baseline — naive "stuff the whole transcript" vs MNEMA on the same suite
-- [ ] Nutrition coach reference demo — proves cross-session recall, supersession, decay + protected fact, and budget packing
+**v1.0 founding scope — all shipped & validated** (full detail in the Validated section above): the tiered T0/T1/T2 + buffer architecture, fast online write, offline consolidation + supersession, recoverable forgetting with a provable protected-fact guarantee, budget-aware recall (dense + buffer, two-pass packer), six swappable adapter axes (LLM/embedding/object/vector/vault/scheduler) with Qwen+Alibaba and fully-local configs, the MCP server + SDK, and the nutrition-coach demo + before/after eval baseline.
 
 ### Out of Scope
 
@@ -150,4 +130,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-15 — Phase 5 (reference demo & evaluation) complete; MILESTONE v1.0 COMPLETE (all 5 phases)*
+*Last updated: 2026-06-15 after v1.0 milestone — shipped & archived*

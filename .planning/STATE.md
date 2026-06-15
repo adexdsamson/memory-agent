@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Phase 04 complete (9/9) — ready to discuss Phase 05
-last_updated: 2026-06-15T12:16:47.395Z
-last_activity: 2026-06-15 -- Phase 05 execution started
+status: Awaiting next milestone
+stopped_at: Phase 1 context gathered
+last_updated: "2026-06-15T12:54:32.820Z"
+last_activity: 2026-06-15 — Milestone v1.0 completed and archived
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 5
   total_plans: 28
   completed_plans: 28
-  percent: 60
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,10 @@ See: .planning/PROJECT.md (updated 2026-06-10)
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-06-15
-
-Progress: [░░░░░░░░░░] 0%
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-15 — Milestone v1.0 completed and archived
 
 ## Performance Metrics
 
@@ -89,3 +87,21 @@ Items acknowledged and carried forward from previous milestone close:
 Last session: 2026-06-10T11:11:20.780Z
 Stopped at: Phase 1 context gathered
 Resume file: .planning/phases/01-schema-ports-local-core-foundation/01-CONTEXT.md
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
+
+## Deferred Items
+
+Acknowledged and deferred at v1.0 milestone close (2026-06-15) — all tracked as files in `.planning/todos/pending/`:
+
+| Category | Item | Status |
+|----------|------|--------|
+| todo | phase-01-code-review-deferred | deferred (INFO/latent) |
+| todo | phase-02-code-review-deferred | deferred (INFO/Phase-4-LLM) |
+| todo | phase-03-code-review-deferred | deferred (cosmetic) |
+| todo | phase-04-code-review-deferred | deferred (IN-01 max_tokens) |
+| todo | phase-05-code-review-deferred | deferred (IN-02/03 cosmetic) |
+
+These are v1.1 candidates; none blocks v1.0. See `.planning/v1.0-MILESTONE-AUDIT.md`.
