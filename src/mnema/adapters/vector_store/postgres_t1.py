@@ -340,6 +340,20 @@ class PostgresT1:
             async for row in cur:
                 yield _make_record(row)
 
+    async def all_live_records(self) -> AsyncIterator[MemoryRecord]:  # type: ignore[misc]
+        """Async generator of ALL live records (valid_until IS NULL) across all users.
+
+        Used by migrate_embedder() when no user_id is specified (CR-01: full-store
+        reindex after recreate_vector_store, which clears ALL users' vectors).
+        Record rows — including protected flag and valid_until — are never modified.
+        """
+        async with self._conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                "SELECT * FROM t1_records WHERE valid_until IS NULL",
+            )
+            async for row in cur:
+                yield _make_record(row)
+
     # -----------------------------------------------------------------------
     # VectorIndex Protocol methods
     # -----------------------------------------------------------------------

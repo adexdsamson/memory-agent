@@ -161,3 +161,52 @@ class TestReindex:
             )
 
             await scheduler.shutdown()
+
+    async def test_migrate_embedder_all_users_no_data_loss(self) -> None:
+        """CR-01: migrate_embedder() with no user_id must re-embed ALL users' live records.
+
+        Seeds two users (u_alice, u_bob) each with 2 live records at dim=64.
+        Calls migrate_embedder(t1, new_embedder) with NO user_id (default=None).
+        Asserts count == 4 (both users' records re-indexed) and that vectors are
+        searchable for both users after migration.
+        """
+        from mnema.migrate import migrate_embedder  # noqa: PLC0415
+
+        from mnema.adapters.embedding.stub import StubEmbedder  # noqa: PLC0415
+        from mnema.adapters.vector_store.sqlite_t1 import SqliteT1  # noqa: PLC0415
+
+        t1 = await SqliteT1.open(":memory:", dim=64)
+        embedder_64 = StubEmbedder(dim=64)
+
+        # Seed 2 records for each of 2 users
+        alice_records = [
+            _make_record("u_alice", "alice fact one"),
+            _make_record("u_alice", "alice fact two"),
+        ]
+        bob_records = [
+            _make_record("u_bob", "bob fact one"),
+            _make_record("u_bob", "bob fact two"),
+        ]
+        for rec in alice_records + bob_records:
+            emb = (await embedder_64.embed([rec.content]))[0]
+            await t1.upsert_with_vector(rec, emb)
+
+        # Migrate to dim=128 without specifying user_id — must cover BOTH users
+        embedder_128 = StubEmbedder(dim=128)
+        count = await migrate_embedder(t1, embedder_128)  # user_id=None (default)
+
+        assert count == 4, (
+            f"migrate_embedder() with user_id=None must re-embed all 4 records "
+            f"(2 users × 2 records each); got count={count}"
+        )
+
+        # Verify both users' records are searchable after migration
+        query = (await embedder_128.embed(["test query"]))[0]
+        alice_results = await t1.vector_search(query, k=4, user_id="u_alice")
+        bob_results = await t1.vector_search(query, k=4, user_id="u_bob")
+        assert len(alice_results) == 2, (
+            f"u_alice must have 2 searchable records after migration; got {len(alice_results)}"
+        )
+        assert len(bob_results) == 2, (
+            f"u_bob must have 2 searchable records after migration; got {len(bob_results)}"
+        )
