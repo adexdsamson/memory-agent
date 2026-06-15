@@ -161,7 +161,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 04-07-PLAN.md � build_engine() config factory + reindex_all() migration (STORE-03/04/05, PROV-07)
+- [x] 04-07-PLAN.md � build_engine() config factory + reindex_all() migration (STORE-03/04/05, PROV-07)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -193,5 +193,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
-| 4. Cloud Providers & Backends | 6/9 | In Progress|  |
+| 4. Cloud Providers & Backends | 7/9 | In Progress|  |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
