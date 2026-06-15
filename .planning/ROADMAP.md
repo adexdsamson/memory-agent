@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Consolidation & Supersession** - Offline extraction, salience, entity resolution, active supersession, and provisional reconciliation (completed 2026-06-14)
 - [x] **Phase 3: Forgetting, Salience Floor, Budget Packer & MCP** - Provable protected-fact survival, recoverable eviction, two-pass budget recall, T2 vault, and the MCP surface (completed 2026-06-14)
 - [ ] **Phase 4: Cloud Providers & Backends** - Real Qwen/Anthropic/Voyage adapters, pgvector/OSS/git backends, config factory, and conformance on ≥2 backends per axis
-- [ ] **Phase 5: Reference Demo & Evaluation** - Nutrition-coach demo and a naive-vs-MNEMA before/after baseline
+- [x] **Phase 5: Reference Demo & Evaluation** - Nutrition-coach demo and a naive-vs-MNEMA before/after baseline (completed 2026-06-15)
 
 ## Phase Details
 
@@ -197,7 +197,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 05-03-PLAN.md — EVAL-02 GREEN: baseline.py + test_eval_baseline + EVAL.md report
+- [x] 05-03-PLAN.md — EVAL-02 GREEN: baseline.py + test_eval_baseline + EVAL.md report
 
 ## Progress
 
@@ -210,4 +210,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
 | 4. Cloud Providers & Backends | 8/9 | In Progress|  |
-| 5. Reference Demo & Evaluation | 3/4 | In Progress|  |
+| 5. Reference Demo & Evaluation | 4/4 | Complete   | 2026-06-15 |
