@@ -127,10 +127,24 @@ async def llm_backend(request: pytest.FixtureRequest):  # type: ignore[return]
         return StubLLM()
 
     elif request.param == "anthropic":
-        pytest.skip("AnthropicLLM not yet implemented — will ship in plan 04-02")
+        import os  # noqa: PLC0415
+
+        from mnema.adapters.llm.anthropic import AnthropicLLM  # noqa: PLC0415
+
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            pytest.skip("Set ANTHROPIC_API_KEY to run anthropic backend")
+        return AnthropicLLM(api_key=api_key)
 
     elif request.param == "qwen":
-        pytest.skip("QwenLLM not yet implemented — will ship in plan 04-02")
+        import os  # noqa: PLC0415
+
+        from mnema.adapters.llm.qwen import QwenLLM  # noqa: PLC0415
+
+        api_key = os.environ.get("DASHSCOPE_API_KEY", "")
+        if not api_key:
+            pytest.skip("Set DASHSCOPE_API_KEY to run qwen backend")
+        return QwenLLM(api_key=api_key)
 
 
 # ---------------------------------------------------------------------------
