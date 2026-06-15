@@ -50,12 +50,15 @@ class TestBuildEngine:
         await engine.consolidate(user_id="u1")  # must not raise
 
     def test_secret_str_hides_api_keys(self) -> None:
-        """QwenAlibabaConfig API keys are SecretStr — str(config) must not reveal them."""
+        """QwenAlibabaConfig API keys are SecretStr — str(config) must not reveal them.
+
+        WR-04: QwenAlibabaConfig now uses QwenEmbedder (qwen_api_key covers both LLM
+        and embedding axes). voyage_api_key is no longer a required field.
+        """
         from mnema.config import QwenAlibabaConfig  # noqa: PLC0415
 
         cfg = QwenAlibabaConfig(
             qwen_api_key="qwen-secret-123",  # type: ignore[arg-type]
-            voyage_api_key="voyage-secret-456",  # type: ignore[arg-type]
             postgres_dsn="postgresql://localhost/x",
             oss_bucket="b",
             oss_access_key_id="oss-id-789",  # type: ignore[arg-type]
@@ -63,7 +66,7 @@ class TestBuildEngine:
             oss_endpoint_url="https://oss.example.com",
         )
         dumped = str(cfg) + repr(cfg) + str(cfg.model_dump())
-        for secret in ("qwen-secret-123", "voyage-secret-456", "oss-id-789", "oss-secret-abc"):
+        for secret in ("qwen-secret-123", "oss-id-789", "oss-secret-abc"):
             assert secret not in dumped
         # but the real value is retrievable via get_secret_value()
         assert cfg.qwen_api_key.get_secret_value() == "qwen-secret-123"
@@ -79,7 +82,6 @@ class TestBuildEngine:
 
         cfg = QwenAlibabaConfig(
             qwen_api_key=os.environ["DASHSCOPE_API_KEY"],  # type: ignore[arg-type]
-            voyage_api_key=os.environ.get("VOYAGE_API_KEY", "x"),  # type: ignore[arg-type]
             postgres_dsn=os.environ["MNEMA_TEST_PG_DSN"],
             oss_bucket=os.environ.get("MNEMA_TEST_OSS_BUCKET", "b"),
             oss_access_key_id=os.environ.get("MNEMA_TEST_OSS_KEY", "x"),  # type: ignore[arg-type]

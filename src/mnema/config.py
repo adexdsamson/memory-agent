@@ -4,8 +4,11 @@
   LocalConfig        — fully-local, always-on stack (SqliteT1 + LocalFS + LocalFSVault +
                        InProcessScheduler + StubEmbedder + StubLLM). Runs the conformance
                        suite end-to-end with zero credentials.
-  QwenAlibabaConfig  — the documented default cloud stack (QwenLLM + VoyageEmbedder +
+  QwenAlibabaConfig  — the canonical default cloud stack (QwenLLM + QwenEmbedder +
                        PostgresT1 + OSSS3Store + LocalFSVault + CronScheduler). Credential-gated.
+                       Per CLAUDE.md: Qwen DashScope for BOTH LLM and embeddings is the
+                       default stack. Claude+Voyage is a valid independent-axis combo but
+                       wired separately (VoyageEmbedder adapter exists for PROV-05).
 
 API keys are stored as Pydantic `SecretStr` — `str(config)`/`model_dump()` never reveal the
 value; the factory extracts them via `.get_secret_value()` only at construction time
@@ -46,17 +49,32 @@ class LocalConfig(BaseModel):
 
 
 class QwenAlibabaConfig(BaseModel):
-    """Documented default cloud stack (Qwen + Alibaba). Credential-gated."""
+    """Canonical default cloud stack: Qwen LLM + Qwen embeddings + Alibaba. Credential-gated.
+
+    Per CLAUDE.md, the default stack uses Qwen DashScope for BOTH the LLM axis
+    (qwen-flash for consolidation, qwen-plus for reasoning) and the embedding axis
+    (text-embedding-v4 @ 1024d). A single qwen_api_key covers both.
+
+    LLM:         QwenLLM   (DashScope qwen-flash / qwen-plus)
+    Embedder:    QwenEmbedder (DashScope text-embedding-v4, Matryoshka 64–2048d)
+    Vector store: PostgresT1 + pgvector HNSW
+    Object store: OSSS3Store (Alibaba OSS via S3-compatible API)
+    Vault:        LocalFSVault
+    Scheduler:    CronScheduler
+
+    For Claude LLM + Voyage embeddings (independent-axis demo), construct
+    MemoryEngine directly with AnthropicLLM + VoyageEmbedder — PROV-05 is
+    satisfied by those adapters existing and passing conformance.
+    """
 
     llm: Literal["qwen"] = "qwen"
-    embedder: Literal["voyage"] = "voyage"
+    embedder: Literal["qwen"] = "qwen"
     vector_store: Literal["postgres"] = "postgres"
     object_store: Literal["oss_s3"] = "oss_s3"
     vault: Literal["local_fs"] = "local_fs"
     scheduler: Literal["cron"] = "cron"
 
     qwen_api_key: SecretStr
-    voyage_api_key: SecretStr
     postgres_dsn: str
     oss_bucket: str
     oss_access_key_id: SecretStr
@@ -75,7 +93,8 @@ async def build_engine(config: MnemaConfig) -> "MemoryEngine":
 
     The same `embedder_dim` is passed to both the embedder and the T1 store so the
     MemoryEngine startup dim assertion (PROV-06) is satisfied. `scheduler.start()` is
-    awaited before returning.
+    awaited and `scheduler.schedule(engine.consolidate, ...)` is called before returning,
+    so automatic consolidation is immediately active (CR-03).
     """
     if isinstance(config, LocalConfig):
         from mnema.adapters.embedding.stub import StubEmbedder  # noqa: PLC0415
@@ -92,12 +111,16 @@ async def build_engine(config: MnemaConfig) -> "MemoryEngine":
         vault = LocalFSVault(config.vault_path)
         scheduler = InProcessScheduler()
         await scheduler.start()
-        return MemoryEngine(
+        engine = MemoryEngine(
             embedder=embedder, t1=t1, t0=t0, scheduler=scheduler, llm=StubLLM(), vault=vault
         )
+        # CR-03: register the consolidation job AFTER the engine exists so
+        # trigger_now() and the scheduled interval can actually dispatch engine.consolidate.
+        await scheduler.schedule(engine.consolidate, every_seconds=3600)
+        return engine
 
     if isinstance(config, QwenAlibabaConfig):  # pyright: ignore[reportUnnecessaryIsInstance]
-        from mnema.adapters.embedding.voyage import VoyageEmbedder  # noqa: PLC0415
+        from mnema.adapters.embedding.qwen import QwenEmbedder  # noqa: PLC0415
         from mnema.adapters.llm.qwen import QwenLLM  # noqa: PLC0415
         from mnema.adapters.object_store.oss_s3 import OSSS3Store  # noqa: PLC0415
         from mnema.adapters.scheduler.cron import CronScheduler  # noqa: PLC0415
@@ -105,8 +128,10 @@ async def build_engine(config: MnemaConfig) -> "MemoryEngine":
         from mnema.adapters.vector_store.postgres_t1 import PostgresT1  # noqa: PLC0415
         from mnema.core.engine import MemoryEngine  # noqa: PLC0415
 
-        embedder = VoyageEmbedder(  # type: ignore[assignment]
-            api_key=config.voyage_api_key.get_secret_value(),
+        # WR-04: canonical default stack uses Qwen for BOTH LLM and embeddings
+        # (qwen_api_key covers both axes — no separate voyage_api_key required).
+        embedder = QwenEmbedder(  # type: ignore[assignment]
+            api_key=config.qwen_api_key.get_secret_value(),
             output_dimension=config.embedder_dim,
         )
         t1 = await PostgresT1.open(config.postgres_dsn, dim=config.embedder_dim)  # type: ignore[assignment]
@@ -119,7 +144,7 @@ async def build_engine(config: MnemaConfig) -> "MemoryEngine":
         vault = LocalFSVault(config.vault_path)
         scheduler = CronScheduler(config.cron_expression)  # type: ignore[assignment]
         await scheduler.start()
-        return MemoryEngine(
+        engine = MemoryEngine(
             embedder=embedder,  # type: ignore[arg-type]
             t1=t1,
             t0=t0,  # type: ignore[arg-type]
@@ -127,5 +152,10 @@ async def build_engine(config: MnemaConfig) -> "MemoryEngine":
             llm=QwenLLM(api_key=config.qwen_api_key.get_secret_value()),  # type: ignore[arg-type]
             vault=vault,
         )
+        # CR-03: register the consolidation job AFTER the engine exists so
+        # trigger_now() and the cron tick can actually dispatch engine.consolidate.
+        # CronScheduler ignores every_seconds and uses its cron_expression instead.
+        await scheduler.schedule(engine.consolidate, every_seconds=0)  # type: ignore[arg-type]
+        return engine
 
     raise ValueError(f"Unsupported config type: {type(config)!r}")
