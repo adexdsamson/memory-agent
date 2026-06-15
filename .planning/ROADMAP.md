@@ -157,7 +157,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 04-05-PLAN.md — PostgresT1 adapter (STORE-02)
-- [ ] 04-06-PLAN.md — OSSS3Store adapter + moto_s3 fixture wiring (STORE-01)
+- [x] 04-06-PLAN.md — OSSS3Store adapter + moto_s3 fixture wiring (STORE-01)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
