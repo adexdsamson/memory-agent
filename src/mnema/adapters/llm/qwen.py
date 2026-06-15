@@ -28,17 +28,21 @@ class QwenLLM:
     instantiate multiple QwenLLM objects with different API keys in one process.
 
     Security: api_key is assigned to dashscope.api_key (SDK internal state) and
-    stored in self._api_key only for per-call api_key= passthrough.
-    It does not appear in __repr__ or error messages.
+    captured in a closure via self._api_key_getter for per-call api_key= passthrough.
+    It is NOT stored as a plain str attribute on self and does not appear in
+    __repr__, __dict__, or error messages (WR-01).
     """
 
     def __init__(self, api_key: str, default_model: str = "qwen-flash") -> None:
         import dashscope  # type: ignore[import-untyped]  # noqa: PLC0415 — lazy: cloud extra required only when instantiated
 
         dashscope.api_key = api_key
-        self._api_key = api_key  # kept for per-call api_key= passthrough
         self._default_model = default_model
         self._dashscope: Any = dashscope  # Any: dashscope ships no type stubs
+        # api_key is NOT stored on self — captured via closure in complete() instead.
+        # This mirrors AnthropicLLM and prevents __dict__/traceback exposure (WR-01).
+        _key = api_key  # captured by _call closure below via self._api_key_getter
+        self._api_key_getter = lambda: _key  # noqa: E731
 
     @property
     def model(self) -> str:
@@ -63,7 +67,7 @@ class QwenLLM:
         """
         m = model or self._default_model
         dashscope: Any = self._dashscope
-        api_key = self._api_key
+        api_key = self._api_key_getter()
 
         def _call() -> str:
             resp: Any = dashscope.Generation.call(
