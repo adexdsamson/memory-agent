@@ -96,10 +96,20 @@ async def embedder_backend(request: pytest.FixtureRequest):  # type: ignore[retu
         return StubEmbedder(dim=128)
 
     elif request.param == "voyage":
-        pytest.skip("VoyageEmbedder not yet implemented — will ship in plan 04-03")
+        import os  # noqa: PLC0415
+
+        from mnema.adapters.embedding.voyage import VoyageEmbedder  # noqa: PLC0415
+
+        api_key = os.environ.get("VOYAGE_API_KEY", "")
+        return VoyageEmbedder(api_key=api_key, output_dimension=1024)
 
     elif request.param == "qwen_embed":
-        pytest.skip("QwenEmbedder not yet implemented — will ship in plan 04-03")
+        import os  # noqa: PLC0415
+
+        from mnema.adapters.embedding.qwen import QwenEmbedder  # noqa: PLC0415
+
+        api_key = os.environ.get("DASHSCOPE_API_KEY", "")
+        return QwenEmbedder(api_key=api_key, output_dimension=1024)
 
 
 # ---------------------------------------------------------------------------
