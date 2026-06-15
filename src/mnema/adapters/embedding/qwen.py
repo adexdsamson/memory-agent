@@ -44,6 +44,10 @@ class QwenEmbedder:
         dashscope.api_key = api_key
         self._dim = output_dimension
         self._TextEmbedding = TextEmbedding  # hold reference for embed()
+        # Capture api_key in a closure so per-call passthrough is possible without
+        # storing it as a plain str attribute on self (WR-03 parity with QwenLLM).
+        _key = api_key
+        self._api_key_getter = lambda: _key  # noqa: E731
 
     @property
     def dim(self) -> int:
@@ -54,6 +58,7 @@ class QwenEmbedder:
         """Embed a batch of texts; returns L2-normalized float vectors of length dim."""
         TextEmbedding = self._TextEmbedding
         dim = self._dim
+        api_key = self._api_key_getter()
 
         def _call() -> list[list[float]]:
             # Assumption A7: model constant may be enum attribute or string literal
@@ -63,7 +68,7 @@ class QwenEmbedder:
                 model = "text-embedding-v4"
 
             resp = TextEmbedding.call(  # type: ignore[union-attr]
-                model=model, input=texts, dimension=dim
+                model=model, input=texts, dimension=dim, api_key=api_key
             )
             output = getattr(resp, "output", None)
             if output is None:
