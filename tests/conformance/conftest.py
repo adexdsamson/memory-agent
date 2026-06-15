@@ -239,4 +239,9 @@ async def scheduler_backend(request: pytest.FixtureRequest):  # type: ignore[ret
         await scheduler.shutdown()
 
     elif request.param == "cron":
-        pytest.skip("CronScheduler not yet implemented — will ship in plan 04-04")
+        from mnema.adapters.scheduler.cron import CronScheduler  # noqa: PLC0415
+
+        scheduler = CronScheduler("*/5 * * * *")
+        await scheduler.start()
+        yield scheduler
+        await scheduler.shutdown()
