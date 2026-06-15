@@ -403,6 +403,22 @@ class PostgresT1:
         )
         await self._conn.commit()
 
+    async def recreate_vector_store(self, new_dim: int) -> None:
+        """Drop+recreate the embedding column + HNSW index at new_dim (PROV-07 migration step).
+
+        All existing vector rows are cleared. Call before migrate_embedder()/reindex_all()
+        when switching embedder dimension. t1_records — and therefore every protected
+        record — is NEVER touched; only the vector column/index is recreated.
+        """
+        drop_col = "ALTER TABLE t1_vectors DROP COLUMN IF EXISTS embedding"
+        add_col = f"ALTER TABLE t1_vectors ADD COLUMN embedding vector({int(new_dim)})"
+        async with self._conn.transaction():
+            await self._conn.execute("DROP INDEX IF EXISTS idx_t1_vectors_hnsw")
+            await self._conn.execute(drop_col)  # type: ignore[arg-type]
+            await self._conn.execute(add_col)  # type: ignore[arg-type]
+            await self._conn.execute(_DDL_HNSW)  # type: ignore[arg-type]
+        self._dim = new_dim
+
     # -----------------------------------------------------------------------
     # Convenience methods (not Protocol members) — parity with SqliteT1
     # -----------------------------------------------------------------------

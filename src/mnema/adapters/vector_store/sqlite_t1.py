@@ -395,9 +395,13 @@ class SqliteT1:
         """Insert or replace a vector for record_id.
 
         CRITICAL: serialize as float32 bytes — never pass a Python list directly.
+        sqlite-vec's vec0 virtual table does NOT honor INSERT OR REPLACE for an existing
+        record_id (it raises a UNIQUE PK error rather than replacing — surfaces on reindex),
+        so we DELETE-then-INSERT, the documented vec0 upsert pattern.
         """
+        await self._db.execute("DELETE FROM vec_t1 WHERE record_id = ?", (record_id,))
         await self._db.execute(
-            "INSERT OR REPLACE INTO vec_t1(record_id, embedding) VALUES (?, ?)",
+            "INSERT INTO vec_t1(record_id, embedding) VALUES (?, ?)",
             (record_id, _v32(embedding)),
         )
         await self._db.commit()
@@ -448,6 +452,22 @@ class SqliteT1:
             "DELETE FROM vec_t1 WHERE record_id = ?", (record_id,)
         )
         await self._db.commit()
+
+    async def recreate_vector_store(self, new_dim: int) -> None:
+        """Drop and recreate the vec_t1 virtual table at new_dim (PROV-07 migration step).
+
+        All existing vectors are cleared. Call before migrate_embedder()/reindex_all()
+        when switching embedder dimension. The t1_records table — and therefore every
+        protected record with valid_until=None — is NEVER touched; only the vector
+        table is affected.
+        """
+        await self._db.execute("DROP TABLE IF EXISTS vec_t1")
+        await self._db.execute(
+            f"CREATE VIRTUAL TABLE vec_t1 USING vec0("
+            f"record_id TEXT PRIMARY KEY, embedding float[{int(new_dim)}])"
+        )
+        await self._db.commit()
+        self._dim = new_dim
 
     # -----------------------------------------------------------------------
     # Convenience methods (not Protocol members)

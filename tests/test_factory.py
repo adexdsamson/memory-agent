@@ -1,56 +1,90 @@
-"""build_engine() factory standalone RED stubs — STORE-04/05.
+"""build_engine() factory tests — STORE-04/05.
 
-These tests are RED until plan 04-07 ships src/mnema/config.py with
-build_engine() and LocalConfig.
-
-Purpose: Prove the config factory wire-up pattern:
-  LocalConfig() -> build_engine() -> MemoryEngine -> scope().remember() + recall()
+LocalConfig() -> build_engine() -> MemoryEngine -> remember() + recall() + consolidate().
+The Qwen+Alibaba cloud config is gated behind MNEMA_TEST_DASHSCOPE.
 """
 
 from __future__ import annotations
 
+import os
+
+import pytest
+
 
 class TestBuildEngine:
-    """Standalone RED stubs for the build_engine() factory (STORE-04/05).
-
-    All tests FAIL until src/mnema/config.py ships in plan 04-07.
-    """
-
     def test_build_engine_imports(self) -> None:
-        """build_engine and LocalConfig must be importable from mnema.config.
-
-        RED until plan 04-07. Fails with ImportError until the module exists.
-        """
-        from mnema.config import LocalConfig, build_engine  # noqa: PLC0415
+        """build_engine, LocalConfig, QwenAlibabaConfig importable from mnema.config."""
+        from mnema.config import (  # noqa: PLC0415
+            LocalConfig,
+            QwenAlibabaConfig,
+            build_engine,
+        )
 
         assert build_engine is not None
         assert LocalConfig is not None
+        assert QwenAlibabaConfig is not None
 
     async def test_local_config_builds_engine(self) -> None:
-        """build_engine(LocalConfig()) must return a MemoryEngine.
-
-        RED until plan 04-07 implements build_engine() factory.
-        """
+        """build_engine(LocalConfig()) returns a MemoryEngine (STORE-04)."""
         from mnema import MemoryEngine  # noqa: PLC0415
         from mnema.config import LocalConfig, build_engine  # noqa: PLC0415
 
-        engine = build_engine(LocalConfig())
-        assert isinstance(engine, MemoryEngine), (
-            f"build_engine(LocalConfig()) must return MemoryEngine; "
-            f"got {type(engine).__name__!r}"
-        )
+        engine = await build_engine(LocalConfig())
+        assert isinstance(engine, MemoryEngine)
 
     async def test_local_config_end_to_end(self) -> None:
-        """build_engine(LocalConfig()) must support remember() + recall() end-to-end.
-
-        RED until plan 04-07 implements both the factory and wires up all adapters.
-        """
+        """build_engine(LocalConfig()) supports remember -> recall end-to-end (STORE-05)."""
         from mnema.config import LocalConfig, build_engine  # noqa: PLC0415
 
-        engine = build_engine(LocalConfig())
+        engine = await build_engine(LocalConfig())
         await engine.remember("test memory content", user_id="u1", session_id="s1")
         results = await engine.recall("test memory content", user_id="u1")
-        assert len(results) > 0, (
-            "recall() after remember() must return at least one result; "
-            f"got {results!r}"
+        assert len(results) > 0
+
+    async def test_local_config_consolidate_roundtrip(self) -> None:
+        """build_engine(LocalConfig()) supports a consolidate() cycle without error."""
+        from mnema.config import LocalConfig, build_engine  # noqa: PLC0415
+
+        engine = await build_engine(LocalConfig())
+        await engine.remember("I am allergic to peanuts", user_id="u1", session_id="s1")
+        await engine.consolidate(user_id="u1")  # must not raise
+
+    def test_secret_str_hides_api_keys(self) -> None:
+        """QwenAlibabaConfig API keys are SecretStr — str(config) must not reveal them."""
+        from mnema.config import QwenAlibabaConfig  # noqa: PLC0415
+
+        cfg = QwenAlibabaConfig(
+            qwen_api_key="qwen-secret-123",  # type: ignore[arg-type]
+            voyage_api_key="voyage-secret-456",  # type: ignore[arg-type]
+            postgres_dsn="postgresql://localhost/x",
+            oss_bucket="b",
+            oss_access_key_id="oss-id-789",  # type: ignore[arg-type]
+            oss_secret_access_key="oss-secret-abc",  # type: ignore[arg-type]
+            oss_endpoint_url="https://oss.example.com",
         )
+        dumped = str(cfg) + repr(cfg) + str(cfg.model_dump())
+        for secret in ("qwen-secret-123", "voyage-secret-456", "oss-id-789", "oss-secret-abc"):
+            assert secret not in dumped
+        # but the real value is retrievable via get_secret_value()
+        assert cfg.qwen_api_key.get_secret_value() == "qwen-secret-123"
+
+    @pytest.mark.skipif(
+        not os.environ.get("MNEMA_TEST_DASHSCOPE"),
+        reason="Set MNEMA_TEST_DASHSCOPE=1 (+ cloud creds) to build the Qwen+Alibaba config",
+    )
+    async def test_qwen_alibaba_config_builds_when_gated(self) -> None:
+        """build_engine(QwenAlibabaConfig(...)) constructs when credentials are present."""
+        from mnema import MemoryEngine  # noqa: PLC0415
+        from mnema.config import QwenAlibabaConfig, build_engine  # noqa: PLC0415
+
+        cfg = QwenAlibabaConfig(
+            qwen_api_key=os.environ["DASHSCOPE_API_KEY"],  # type: ignore[arg-type]
+            voyage_api_key=os.environ.get("VOYAGE_API_KEY", "x"),  # type: ignore[arg-type]
+            postgres_dsn=os.environ["MNEMA_TEST_PG_DSN"],
+            oss_bucket=os.environ.get("MNEMA_TEST_OSS_BUCKET", "b"),
+            oss_access_key_id=os.environ.get("MNEMA_TEST_OSS_KEY", "x"),  # type: ignore[arg-type]
+            oss_secret_access_key=os.environ.get("MNEMA_TEST_OSS_SECRET", "x"),  # type: ignore[arg-type]
+            oss_endpoint_url=os.environ.get("MNEMA_TEST_OSS_ENDPOINT", "https://oss.example.com"),
+        )
+        engine = await build_engine(cfg)
+        assert isinstance(engine, MemoryEngine)

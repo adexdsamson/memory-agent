@@ -50,9 +50,10 @@ class TestReindex:
 
         RED until plan 04-07 implements reindex_all().
         """
+        from mnema.migrate import reindex_all  # noqa: PLC0415
+
         from mnema.adapters.embedding.stub import StubEmbedder  # noqa: PLC0415
         from mnema.adapters.vector_store.sqlite_t1 import SqliteT1  # noqa: PLC0415
-        from mnema.migrate import reindex_all  # noqa: PLC0415
 
         embedder = StubEmbedder(dim=128)
         t1 = await SqliteT1.open(":memory:", dim=128)
@@ -88,13 +89,13 @@ class TestReindex:
         RED until plan 04-07 implements migrate_embedder() and dim-switch logic.
         """
         import pytest  # noqa: PLC0415
+        from mnema.migrate import migrate_embedder  # noqa: PLC0415
 
         from mnema import MemoryEngine  # noqa: PLC0415
         from mnema.adapters.embedding.stub import StubEmbedder  # noqa: PLC0415
         from mnema.adapters.object_store.local_fs import LocalFS  # noqa: PLC0415
         from mnema.adapters.scheduler.in_process import InProcessScheduler  # noqa: PLC0415
         from mnema.adapters.vector_store.sqlite_t1 import SqliteT1  # noqa: PLC0415
-        from mnema.migrate import migrate_embedder  # noqa: PLC0415
 
         # Step 1: Create T1 at dim=64
         t1_64 = await SqliteT1.open(":memory:", dim=64)
