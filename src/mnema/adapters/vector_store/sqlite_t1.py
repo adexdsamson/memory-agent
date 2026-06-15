@@ -239,6 +239,24 @@ class SqliteT1:
 
         return cls(db, dim)
 
+    async def close(self) -> None:
+        """Flush the WAL and close the aiosqlite connection.
+
+        Runs PRAGMA wal_checkpoint(FULL) before closing so that any in-flight
+        WAL pages are merged into the main database file. This is required for
+        DEMO-02 cross-session: closing engine 1's connection before opening
+        engine 2 over the same file path guarantees engine 2 sees all writes.
+
+        Idempotent: calling close() on an already-closed connection is a no-op
+        (aiosqlite raises no error on double-close; the try/except is defensive).
+        """
+        try:
+            await self._db.execute("PRAGMA wal_checkpoint(FULL)")
+            await self._db.close()
+        except Exception:
+            # Already closed or connection in broken state — treat as no-op.
+            pass
+
     # -----------------------------------------------------------------------
     # RecordStore Protocol methods
     # -----------------------------------------------------------------------
