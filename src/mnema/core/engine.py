@@ -516,3 +516,11 @@ class ScopedHandle:
             Turn if found and user matches; None otherwise.
         """
         return await self._engine.expand(record_id, user_id=self._user_id)
+
+    async def forget(self, record_id: str, *, reason: str = "") -> None:
+        """Explicitly evict a single record with the bound user_id (recoverable, FORG-04)."""
+        return await self._engine.forget(record_id, user_id=self._user_id, reason=reason)
+
+    async def evict(self) -> int:
+        """Run the decay/eviction pass for the bound user_id; returns the evicted count."""
+        return await self._engine.evict(user_id=self._user_id)
