@@ -183,7 +183,10 @@ async def object_store_backend(request: pytest.FixtureRequest, tmp_path):  # typ
     if request.param == "local_fs":
         from mnema.adapters.object_store.local_fs import LocalFS  # noqa: PLC0415
 
-        return LocalFS(str(tmp_path / "t0"))
+        # yield (not return): this fixture is an async generator (moto_s3/oss branches
+        # use yield), and `return <value>` is a SyntaxError in an async generator.
+        yield LocalFS(str(tmp_path / "t0"))
+        return
 
     elif request.param == "moto_s3":
         # moto provides a hermetic in-process S3 mock (no network, no credentials).
