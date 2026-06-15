@@ -219,13 +219,13 @@ async def test_decay_protected_and_recovery(persistent_engine_factory) -> None: 
     await close_engine(eng)
 
 
-@pytest.mark.xfail(strict=False, reason="RED stub — implement in Wave 1/2")
 async def test_budget_packing_and_expand(persistent_engine_factory) -> None:  # type: ignore[no-untyped-def]
     """DEMO-05: Large history packed under token budget; verbatim expand() works.
 
     Seeds 20+ non-protected records + 1 protected allergy, then recalls with
     budget=300. Asserts:
       - Non-protected records' token sum fits within budget.
+      - Protected allergy always appears in results regardless of budget.
       - expand() on a seeded record returns the original Turn content.
     """
     from mnema.core.packer import TiktokenCounter  # noqa: PLC0415
@@ -234,7 +234,7 @@ async def test_budget_packing_and_expand(persistent_engine_factory) -> None:  # 
     eng = await make_engine()
     scope = eng.scope(user_id="demo_user")
 
-    # Seed 20+ non-protected records
+    # Seed 20 non-protected records
     for i in range(20):
         await scope.remember(f"meal fact {i}: I enjoy various foods item {i}", session_id="s1")
 
@@ -243,24 +243,26 @@ async def test_budget_packing_and_expand(persistent_engine_factory) -> None:  # 
     await eng.consolidate()
 
     # Recall with budget=300
-    budget = 300
-    results = await scope.recall("meal history", budget=budget)
+    BUDGET = 300
+    results = await scope.recall("meal history", budget=BUDGET)
     assert len(results) > 0
 
     counter = TiktokenCounter()
-    non_protected = [r for r in results if not r.protected]
-    non_protected_tokens = sum(counter.count(r.summary or r.content[:80]) for r in non_protected)
+    protected_results = [r for r in results if r.protected]
+    non_protected_results = [r for r in results if not r.protected]
+    non_protected_tokens = sum(counter.count(r.summary or r.content[:80]) for r in non_protected_results)
 
-    # Non-protected records must fit within the budget
-    assert non_protected_tokens <= budget
+    # DEMO-05 proof: two-pass packer (RECALL-05) reserves protected slots first — allergy guaranteed
+    # in results. Non-protected records packed within remaining budget.
+    assert non_protected_tokens <= BUDGET, f"Non-protected tokens {non_protected_tokens} must fit within budget {BUDGET}"
 
     # Protected allergy must appear in results regardless of budget
-    assert any(r.protected for r in results), "protected allergy must always be included"
+    assert any(r.protected for r in results), "Protected allergy must always appear in budgeted recall (two-pass packer guarantee)"
+    assert any("peanut" in r.content for r in protected_results), "Protected result must be the peanut allergy"
 
-    # Verbatim expand on first result with a t0_ref
-    first_with_ref = next((r for r in results if r.t0_ref is not None), None)
-    if first_with_ref is not None:
-        turn = await scope.expand(first_with_ref.id)
-        assert turn is not None
+    # Verbatim expand on protected allergy (seeded via remember() — has valid t0_ref)
+    turn = await scope.expand(protected_results[0].id)
+    assert turn is not None, "expand() on a seeded record must return a Turn"
+    assert "peanut" in turn.content, "Verbatim T0 turn must contain original allergy content"
 
     await close_engine(eng)
