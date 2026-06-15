@@ -112,7 +112,6 @@ async def test_cross_session_recall(persistent_engine_factory) -> None:  # type:
     await close_engine(eng2)
 
 
-@pytest.mark.xfail(strict=False, reason="RED stub — implement in Wave 1/2")
 async def test_supersession_surfaces_fields(persistent_engine_factory) -> None:  # type: ignore[no-untyped-def]
     """DEMO-03: Diet change retires old record with valid_until + superseded_by.
 
@@ -124,12 +123,19 @@ async def test_supersession_surfaces_fields(persistent_engine_factory) -> None: 
       - The first record has valid_until IS NOT None.
       - The first record has superseded_by IS NOT None.
     """
+    from tests.test_consolidation import _verdict_for_pair  # noqa: PLC0415
+
     make_engine, close_engine = persistent_engine_factory
     eng = await make_engine()
     scope = eng.scope(user_id="demo_user")
 
-    # First remember + consolidate: creates confirmed T1 record
+    # DEMO-03 proof: same content → distance=0 → entity resolution fires
+    # → StubLLM judges 'contradict' → old record retired
     diet_content = "spicy food preference item 0"
+    # Sanity: verify the pre-computed contradict self-pair before touching the engine
+    assert _verdict_for_pair(diet_content, diet_content) == "contradict"
+
+    # First remember + consolidate: creates confirmed T1 record
     await scope.remember(diet_content, session_id="s1")
     await eng.consolidate()
 
@@ -140,7 +146,7 @@ async def test_supersession_surfaces_fields(persistent_engine_factory) -> None: 
     old_id = diet_records[0].id
 
     # Second remember with same content — deterministic contradict verdict
-    await scope.remember(diet_content, session_id="s1")
+    await scope.remember(diet_content, session_id="s2")
     await eng.consolidate()
 
     # Old record must now have valid_until and superseded_by set
@@ -148,6 +154,10 @@ async def test_supersession_surfaces_fields(persistent_engine_factory) -> None: 
     assert old_record is not None
     assert old_record.valid_until is not None, "old record should be retired"
     assert old_record.superseded_by is not None, "old record should point to successor"
+
+    # Recall must NOT return the retired record (valid_until filter in vector_search)
+    live_results = await scope.recall("food preference")
+    assert all(r.id != old_id for r in live_results), "retired record must not appear in recall"
 
     await close_engine(eng)
 
