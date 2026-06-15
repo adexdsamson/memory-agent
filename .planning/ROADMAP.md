@@ -150,9 +150,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 04-02-PLAN.md � AnthropicLLM + QwenLLM cloud adapters (PROV-03/04)
-- [ ] 04-03-PLAN.md � VoyageEmbedder + QwenEmbedder adapters (PROV-05)
-- [ ] 04-04-PLAN.md � CronScheduler adapter (SCHED-03)
+- [x] 04-02-PLAN.md � AnthropicLLM + QwenLLM cloud adapters (PROV-03/04)
+- [x] 04-03-PLAN.md � VoyageEmbedder + QwenEmbedder adapters (PROV-05)
+- [x] 04-04-PLAN.md � CronScheduler adapter (SCHED-03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -193,5 +193,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Schema, Ports & Local Core Foundation | 5/5 | Complete   | 2026-06-10 |
 | 2. Consolidation & Supersession | 5/5 | Complete   | 2026-06-14 |
 | 3. Forgetting, Salience Floor, Budget Packer & MCP | 5/5 | Complete   | 2026-06-14 |
-| 4. Cloud Providers & Backends | 2/9 | In Progress|  |
+| 4. Cloud Providers & Backends | 5/9 | In Progress|  |
 | 5. Reference Demo & Evaluation | 0/TBD | Not started | - |
