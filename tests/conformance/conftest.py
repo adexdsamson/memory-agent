@@ -66,7 +66,6 @@ async def t1_backend(request: pytest.FixtureRequest, tmp_path):  # type: ignore[
         yield await SqliteT1.open(":memory:", dim=128)
 
     elif request.param == "postgres":
-        import os  # noqa: PLC0415
         import shutil  # noqa: PLC0415
 
         container = None
